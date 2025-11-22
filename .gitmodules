@@ -1,0 +1,3 @@
+[submodule "src/external"]
+	path = src/external
+	url = https://github.com/jmontalt/harmonicY.git
