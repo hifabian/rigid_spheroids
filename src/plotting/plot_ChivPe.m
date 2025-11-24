@@ -25,8 +25,8 @@ end
 legend('Mono', 'Poly (Lognormal)', 'Poly (Normal)');
 legend('Location', 'best');
 hold off;
-%disableDefaultInteractivity(gca);
-%exportgraphics(gcf, outputPath+"Chi_vs_Pe.pdf");
+disableDefaultInteractivity(gca);
+exportgraphics(gcf, outputPath+"Chi_vs_Pe.pdf");
 
 
 function h = helper(Pe, ExtChi, varargin)
