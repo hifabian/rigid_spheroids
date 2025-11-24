@@ -1,5 +1,6 @@
 function result = fp_steady(sr, er, lv, fv, beta, varargin)
-% Solve Fokker-Planck equation for rod suspensions.
+% Solve steady Fokker-Planck equation for rod suspensions.
+%
 % Polydisperse if (lv, fv) form a grid (using trapezoiudal method).
 % Monodisperse is solved if lv is a scalar.
 %
@@ -22,10 +23,13 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
 %   fv:    Polydispersity probability density function f(lv)
 %   beta:  Bretherton parameter (scalar or vector for each rod)
 %
-%   Lmax (default=0):  Maximum L value (must be even). Automatic if 0.
-%   threshold (default=1e-8):  Threshold for psi(Lmax) < threshold.
+%   Lmax (default=1024):            Maximum L value (must be even)
+%   Ladaptive (default=false):      Adaptively sets Lmax based on
+%       threshold; This is solves at least twice the problems and thus
+%       slow but accurate around specified threshold
+%   threshold (default=1e-6):       Threshold
 %   type ('xy' (default) or 'xz'):  Type of plane
-%   verbose (default=false):  Verbose output
+%   verbose (default=false):        Verbose output
 %
 % Output:
 %   result.sr:        Input shear rate(s)
@@ -44,16 +48,22 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
 
     parser = inputParser;
     addParameter(parser, 'Lmax', 0);
-    addParameter(parser, 'threshold', 1e-8);
+    addParameter(parser, 'Ladaptive', false);
+    addParameter(parser, 'threshold', 1e-6);
     addParameter(parser, 'type', 'xy');
     addParameter(parser, 'verbose', false);
 
     parse(parser, varargin{:});
     
     Lmax = parser.Results.Lmax;
+    Ladaptive = parser.Results.Ladaptive;
     threshold = parser.Results.threshold;
     type = parser.Results.type;
     verbose = parser.Results.verbose;
+
+    if Ladaptive && Lmax == 0
+        Lmax = 1024;
+    end
 
     assert(length(sr) == length(er) || isscalar(er) || isscalar(sr));
     selength = max(length(sr), length(er));
@@ -68,14 +78,9 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
     end
 
     if verbose
-        if Lmax == 0
-            disp("> Solving "+length(sr)+"x"+length(lv) ...
-                 +" problem(s) of automatic size");
-        else
-            disp("> Solving "+length(sr)+"x"+length(lv) ...
-                 +" problem(s) of size N = " ...
-                 +(1+(Lmax/2)^2+Lmax)+"+1");
-        end
+        disp("> Solving "+selength+"x"+length(lv)+" problem(s)");
+        disp("> Lmax = "+Lmax+" (adaptive ? "+Ladaptive+")");
+        LmaxInfo = 0;
     end
 
     if isscalar(beta)
@@ -95,6 +100,33 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
     result.ExtChi = zeros(selength,1);
     result.ExtTheta = zeros(selength,1);
 
+    % Pre-built operators (maximum size):
+
+    if ~Ladaptive
+        % non addaptive, or adaptive
+        Lhmax = Lmax;
+        Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+
+        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax);
+        % For Lagrange multiplier
+        c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
+        b = zeros(size(L2h,1)+1,1); % right-hand-side
+        b(1) = 1;
+    else  % Adaptive, using large precomputed matrix
+        [L2, G, iLy, W] = build_matrix(Lmax);
+        % For Lagrange multiplier
+        c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
+        b = zeros(size(L2,1)+1,1); % right-hand-side
+        b(1) = 1;
+
+        Lhmax = 32;
+        Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+        Llmax = 16;
+        Nl = 1+0.25*Llmax*Llmax+Llmax;
+
+        L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
+        Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+    end
 
     for i = 1:selength
 
@@ -104,24 +136,56 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
 
             srPe = result.sr(i)/result.Dr(j);
             erPe = result.er(i)/result.Dr(j);
-            if Lmax == 0
-                % Okay for Peclet number <= 1e6
-                Lmaxloc = max(32, 2^(4+ceil(log10(max(srPe,erPe)))));
-            else
-                Lmaxloc = Lmax;
-            end
 
-            psi_coeff = solve_spectral_fp(Lmaxloc, bv(j), srPe, erPe);
+            % High accuracy solution
+            A = [0,       c(1:Nh)'; ...
+                 c(1:Nh), L2h ...
+                         + srPe*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
+                         + erPe*bv(j)*Wh];
+            psi_coeff = A \ b(1:Nh+1); % [0,-psi]
 
-            if verbose
-                indices = find(psi_coeff  > threshold);
-                [lloc, ~] = lmdx(indices(end));
-                if lloc == Lmaxloc
-                    disp("! WARNING: ALL INDICES ABOVE THRESHOLD!");
-                    disp("!          TRY INCREASING Lmax "+ Lmaxloc);
+            if Ladaptive
+                % Low accuracy reference
+                psi_ref = A(1:Nl+1,1:Nl+1) \ b(1:Nl+1);
+                err = norm(psi_ref(3:5)-psi_coeff((3:5)));
+                % Refine until small
+                while err > threshold*norm(psi_coeff(3:5))
+                    if Lhmax == Lmax
+                        disp("> WARNING: Cannot achieve "+ ...
+                             "threshold with given Lmax!");
+                        break
+                    end
+                    Lhmax = min(Lmax, Lhmax*2);
+                    LmaxInfo = max(Lhmax, LmaxInfo);
+                    Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+                    Llmax = Lhmax*0.5;
+                    Nl = 1+0.25*Llmax*Llmax+Llmax;
+                    L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
+                    Lyh = L2(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+                    % Set high -> low
+                    psi_ref = psi_coeff;
+                    % Recompute high accuracy solution
+                    A = [0,       c(1:Nh)'; ...
+                         c(1:Nh), L2h ...
+                                 + srPe*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
+                                 + erPe*bv(j)*Wh];
+                    psi_coeff = A \ b(1:Nh+1);
+                    err = norm(psi_ref(3:5)-psi_coeff((3:5)));
+                end
+                % Check if too small, then decrease resolution for next
+                % step
+                if Lhmax > 32 && err < 1e-2*threshold*norm(psi_coeff(3:5))
+                    Lhmax = 0.5*Lhmax;
+                    Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+                    Llmax = Lhmax*0.25;
+                    Nl = 1+0.25*Llmax*Llmax+Llmax;
+                    % Set low -> high
+                    L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
+                    Lyh = L2(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
                 end
             end
 
+            psi_coeff = -psi_coeff(2:end); % drop Lagrange multiplier
             Q(j,:) = order_matrix(psi_coeff, 'type', type);
         end
 
@@ -140,6 +204,10 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
         result.ExtChi(i,:) = ExtChi;
         result.ExtTheta(i,:) = ExtTheta;
 
+    end
+
+    if verbose
+        disp("> max(Lmax) = "+LmaxInfo);
     end
 
 end

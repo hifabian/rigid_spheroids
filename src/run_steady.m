@@ -15,8 +15,8 @@ rp   = lmean/dmean;           % (0: disk, 1: sphere, +infty: rod)
 beta = (rp.^2 - 1)/(rp.^2 + 1); % (-1: disk, 0: sphere, 1: rod)
 
 lmin = max(lmean - 5*lsigma,lmean/rp);
-lmax = lmean + 7*lsigma;
-Nl = 5e1+1;
+lmax = lmean + 5*lsigma;
+Nl = 1e2+1;
 
 lv = linspace(lmin, lmax, Nl);
 
@@ -28,13 +28,13 @@ lognormal = makedist('Lognormal', ...
 
 
 %% Shear information
-Pe = logspace(-2,5,20);
+Pe = logspace(-2,4,50);
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = Dr_mean*Pe;
 er = 0;
 
 % Monodisperse
-result = fp_steady(sr, er, lmean, 1.0, beta, 'verbose', true, 'Lmax', 32);
+result = fp_steady(sr, er, lmean, 1.0, beta, 'verbose', true, 'Ladaptive', true);
 save(dataPath+"shear_mono_steady_"+lmean+"_"+num2str(beta, '%.2f')+".mat", ...
     'result');
 
@@ -43,19 +43,19 @@ distributions = {lognormal, normal};
 for i = 1:length(distributions)
     fv = pdf(distributions{i}, lv);
     fv = fv / trapz(lv, fv);  % Discretized distribution instead
-    result = fp_steady(sr, er, lv, fv, beta, 'verbose', true, 'Lmax', 32);
+    result = fp_steady(sr, er, lv, fv, beta, 'verbose', true, 'Ladaptive', true);
     save(dataPath+"shear_poly_"+distributions{i}.DistributionName+"_steady_" ...
         +lmean+"_"+num2str(beta, '%.2f')+".mat", 'result');
 end
 
 %% Extension information
-Pe = logspace(-2,4,20);
+Pe = logspace(-2,2,30);
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = 0;
 er = Dr_mean*Pe;
 
 % Monodisperse
-result = fp_steady(sr, er, lmean, 1.0, beta, 'verbose', true, 'Lmax', 32);
+result = fp_steady(sr, er, lmean, 1.0, beta, 'verbose', true, 'Ladaptive', true);
 save(dataPath+"extension_mono_steady_"+lmean+"_"+num2str(beta, '%.2f')+".mat", ...
     'result');
 
@@ -64,7 +64,7 @@ distributions = {lognormal, normal};
 for i = 1:length(distributions)
     fv = pdf(distributions{i}, lv);
     fv = fv / trapz(lv, fv);  % Discretized distribution instead
-    result = fp_steady(sr, er, lv, fv, beta, 'verbose', true, 'Lmax', 32);
+    result = fp_steady(sr, er, lv, fv, beta, 'verbose', true, 'Ladaptive', true);
     save(dataPath+"extension_poly_"+distributions{i}.DistributionName+"_steady_" ...
         +lmean+"_"+num2str(beta, '%.2f')+".mat", 'result');
 end

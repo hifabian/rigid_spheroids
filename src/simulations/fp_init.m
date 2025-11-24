@@ -16,10 +16,11 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
 %   fv:    Polydispersity probability density function f(lv)
 %   beta:  Bretherton parameter (scalar or vector for each rod)
 %
-%   Lmax (default=0):  Maximum L value (must be even). Automatic if 0.
-%   threshold (default=1e-8):  Threshold for psi(Lmax) < threshold.
+%   Lmax (default=0):               Maximum L value (must be even). 
+%                                   Automatic if 0.
+%   threshold (default=1e-8):       Threshold for psi(Lmax) < threshold.
 %   type ('xy' (default) or 'xz'):  Type of shear
-%   verbose (default=false):  Verbose output
+%   verbose (default=false):        Verbose output
 %
 % Output:
 %   result.sr0:       Input initial shear rate
@@ -77,13 +78,15 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
         erPe = er0/result.Dr(j);
         if Lmax == 0
             % Okay for Peclet number <= 1e6
-            Lmaxloc = max(32, 2^(4+ceil(log10(srPe))));
+            Lmaxloc = max([32, ...
+                2^(4+ceil(log10(srPe))), ...
+                2^(5+ceil(log10(erPe)))]);
         else
             Lmaxloc = Lmax;
         end
-        Lmaxloc = min(1024, Lmaxloc);  % TODO remove
+        Lmaxloc = min(1024, Lmaxloc);
 
-        result.psi0{j} = solve_spectral_fp(Lmaxloc, bv(j), srPe, erPe);
+        result.psi0{j} = solve_steady(Lmaxloc, bv(j), srPe, erPe);
 
         if verbose
             indices = find(result.psi0{j}  > threshold);

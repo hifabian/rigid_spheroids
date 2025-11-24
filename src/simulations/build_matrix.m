@@ -1,8 +1,13 @@
-function [L, G, W] = build_matrix(Lmax, beta)
-% Build spectral matrices K (Laplace) and L (Drift) for simple xz-shear.
+function [L2, G, iLy, W] = build_matrix(Lmax)
+% Build matrix representations of operators:
+%
+%   \[ \mathsf{L2}  = \hat{L}^2 = - \nabla^2 \]
+%   \[ \mathsf{G}   = \hat{\Gamma} = 2\sqrt{\frac{\pi}{15}} \left( -3\sqrt{3} Y_{2,1} - Y_{2,-1} \imag \hat{L}_z + \left(\sqrt{\frac{4}{3}} Y_{2,0} + \sqrt{\frac{5}{12\pi}} \right) \imag \hat{L}_y\right) \]
+%   \[ \mathsf{iLy} = i \hat{L}_y \]
+%   \[ \mathsf{W}   = \hat{\Omega} = 2 \sqrt{\frac{\pi}{15}} \left( 3 \left(\sqrt{3} Y_{2,0} - Y_{2,2}\right) - Y_{2,-2} \imag \hat{L}_z + 2 Y_{2,1} \imag \hat{L}_y - Y_{2,-1} \imag \hat{L}_x \right) \]
+%
 % Input
-%   Lmax: Maximum L for spectral basis (always all m values)
-%   beta: Aspect ratio of rods
+%   Lmax:   Maximum L for spectral basis (always all m >= 0 values)
 
     function g = g(m)
         if m == 0
@@ -45,10 +50,10 @@ function [L, G, W] = build_matrix(Lmax, beta)
     v = zeros(1, N);
     for l = 0:2:Lmax
         for m = 0:l
-            v(idx(l,m,Lmax)) = -l*(l+1);
+            v(idx(l,m,Lmax)) = l*(l+1);
         end
     end
-    L = sparse(i, i, v, N, N);
+    L2 = sparse(i, i, v, N, N);
 
     % Off-diagonals 1: (l'm'| (1-beta)/2 i L_y |l, m)
     i = zeros(1,2*N); j = zeros(1,2*N); v = zeros(1,2*N);
@@ -57,16 +62,16 @@ function [L, G, W] = build_matrix(Lmax, beta)
         for m = 0:l
             ii = idx(l,m,Lmax);
             i(ldx) = ii; j(ldx) = idx(l,m-1,Lmax);
-            v(ldx) = g(m)*g(m-1)*(1-beta)*0.25*(l*(l+1)-m*(m-1))^0.5;
+            v(ldx) = g(m)*g(m-1)*0.5*(l*(l+1)-m*(m-1))^0.5;
             i(ldx+1) = ii; j(ldx+1) = idx(l,m+1,Lmax);
-            v(ldx+1) = -g(m)*g(m+1)*(1-beta)*0.25*(l*(l+1)-m*(m+1))^0.5;
+            v(ldx+1) = -g(m)*g(m+1)*0.5*(l*(l+1)-m*(m+1))^0.5;
             ldx = ldx+2;
         end
     end
     % Remove out of bound indices
     k = find(~i); i(k) = []; j(k) = []; v(k) = []; 
     k = find(~j); i(k) = []; j(k) = []; v(k) = []; 
-    G = sparse(i, j, v, N, N); % Note: Singular!
+    iLy = sparse(i, j, v, N, N); % Note: Singular!
 
     % Off-diagonals 2: (l'm'| beta*Gamma |l, m)
     i = zeros(1,6*N); j = zeros(1,6*N); v = zeros(1,6*N);
@@ -93,7 +98,7 @@ function [L, G, W] = build_matrix(Lmax, beta)
     % Remove out of bound indices
     k = find(~i); i(k) = []; j(k) = []; v(k) = []; 
     k = find(~j); i(k) = []; j(k) = []; v(k) = []; 
-    G = G+sparse(i, j, beta*v, N, N);
+    G = sparse(i, j, v, N, N);
 
     % Planar extension: (l'm'| beta*Omega |l, m)
     i = zeros(1,9*N); j = zeros(1,9*N); v = zeros(1,9*N);
@@ -132,5 +137,5 @@ function [L, G, W] = build_matrix(Lmax, beta)
     % Remove out of bound indices
     k = find(~i); i(k) = []; j(k) = []; v(k) = []; 
     k = find(~j); i(k) = []; j(k) = []; v(k) = []; 
-    W = sparse(i, j, beta*v, N, N);
+    W = sparse(i, j, v, N, N);
 end

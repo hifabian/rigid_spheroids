@@ -7,8 +7,9 @@ function result = fp_unsteady(init, T, sr, er, varargin)
 %   sr:    Shear rate (constant or function of time)
 %   er:    Extension rate (constant or function of time)
 %
-%   dt (default=T/100): Time step of transient solution
-%   verbose (default=false):  Verbose output
+%   dt (default=T/100):             Time step of transient solution
+%   verbose (default=false):        Verbose output
+%   type ('xy' (default) or 'xz'):  Type of plane
 %
 % Output:
 %   result.t:         Time grid
