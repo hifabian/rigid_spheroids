@@ -27,7 +27,7 @@ lognormal = makedist('Lognormal', ...
     'sigma', sqrt(log(lsigma^2/lmean^2+1)));
 
 %% Shear information
-Pe = 1.0;
+Pe = 10.0;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = Dr_mean*Pe;
 er = 0;
@@ -52,7 +52,7 @@ for i = 1:length(distributions)
 end
 
 %% Extension information
-Pe = 1.0;
+Pe = 0.5*10.0;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = 0;
 er = Dr_mean*Pe;
