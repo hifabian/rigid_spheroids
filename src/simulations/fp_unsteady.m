@@ -71,11 +71,17 @@ function result = fp_unsteady(init, T, sr, er, varargin)
         init.psi0 = {init.psi0};
     end
 
+    % Pre-compute matrices
+    [L2, G, iLy, W] = build_matrix(init.Lmax);
+
     Q = zeros(length(result.fv), length(result.t), 6);
     for j = 1:length(result.fv)
-        Lmax = (length(init.psi0{j})^0.5-1)*2;
-        [~, psiTj] = solve_unsteady(result.t, init.psi0{j}, Lmax, ...
-            result.beta(j), sr, er, result.Dr(j));
+        N = length(init.psi0{j});
+        [f, Fjac] = transient(sr, er, result.beta(j), result.Dr(j), ...
+            L2(1:N,1:N), G(1:N,1:N), iLy(1:N,1:N), W(1:N,1:N));
+
+        opts = odeset('Jacobian', Fjac);
+        [~, psiTj] = ode15s(f, result.t, init.psi0{j}, opts);
         Q(j,:,:) = order_matrix(psiTj, 'type', type);
     end
 
@@ -96,3 +102,28 @@ function result = fp_unsteady(init, T, sr, er, varargin)
 
 end
 
+function [f, Fjac] = transient(gamma, epsilon, beta, Dr, L2, G, iLy, W)
+% Helper function
+
+    L = -Dr*L2;
+    S = beta*G+0.5*(1-beta)*iLy;
+    W = beta*W;
+
+    if isnumeric(gamma) && isscalar(gamma)
+        if isnumeric(epsilon) && isscalar(epsilon)
+            f = @(t,y) L*y-gamma*(S*y)-epsilon*(W*y);
+            Fjac = @(t,y) L-gamma*S-epsilon*W;
+        else
+            f = @(t,y) L*y-gamma*(S*y)-epsilon(t)*(W*y);
+            Fjac = @(t,y) L-gamma*S-epsilon(t)*W;
+        end
+    else
+        if isnumeric(epsilon) && isscalar(epsilon)
+            f = @(t,y) L*y-gamma(t)*(S*y)-epsilon*(W*y);
+            Fjac = @(t,y) L-gamma(t)*S-epsilon*W;
+        else
+            f = @(t,y) L*y-gamma(t)*(S*y)-epsilon(t)*(W*y);
+            Fjac = @(t,y) L-gamma(t)*S-epsilon(t)*W;
+        end
+    end
+end
