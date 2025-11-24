@@ -22,9 +22,10 @@ hold on;
 for i = 1:length(res_poly)
     helper(res_poly{i}.sr/Dr_mean, res_poly{i}.Sz, 'handle', h_order);
 end
-legend('Mono', 'Poly (Lognormal)', 'Poly (Normal)');
-legend('Location', 'best');
 
+%% Reset colors
+ax = gca;
+ax.ColorOrderIndex = 1;
 
 %% Load data to plot
 res_mono = load(dataPath+"extension_mono_steady_4.809e-07_1.00.mat").result;
@@ -37,19 +38,17 @@ rp = ((1+res_mono.beta)./(1-res_mono.beta)).^0.5;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 
 %% Plot data
-h_order = helper(res_mono.er/Dr_mean, res_mono.Sz);
-hold on;
+helper(2*res_mono.er/Dr_mean, res_mono.Sz, 'handle', h_order, 'LineStyle', "--");
 for i = 1:length(res_poly)
-    helper(res_poly{i}.er/Dr_mean, res_poly{i}.Sz, 'handle', h_order);
+    helper(2*res_poly{i}.er/Dr_mean, res_poly{i}.Sz, 'handle', h_order, 'LineStyle', "--");
 end
-legend('Mono (Ext)', 'Poly (Lognormal) (Ext)', 'Poly (Normal) (Ext)');
+
+legend('Mono', 'Poly (Lognormal)', 'Poly (Normal)');
 legend('Location', 'best');
 
-
-
-%hold off;
-%disableDefaultInteractivity(gca);
-%exportgraphics(gcf, outputPath+"S_vs_Pe.pdf");
+hold off;
+disableDefaultInteractivity(gca);
+exportgraphics(gcf, outputPath+"S_vs_Pe.pdf");
 
 
 function h = helper(Pe, S, varargin)
@@ -61,6 +60,7 @@ function h = helper(Pe, S, varargin)
 
     parser = inputParser;
     addParameter(parser, 'handle', 0);
+    addParameter(parser, 'LineStyle', '-');
 
     parse(parser, varargin{:});
     
@@ -68,9 +68,9 @@ function h = helper(Pe, S, varargin)
     if h == 0
         h = figure;
     end
-    plot(Pe, S, '-', LineWidth=2);
+    plot(Pe, S, LineWidth=2, LineStyle=parser.Results.LineStyle);
     xscale('log'); yscale('log');
-    xlabel("$\dot{\gamma} / \overline{D_r}$",Interpreter="latex");
+    xlabel("$\dot{\gamma} / \overline{D_r}, \quad 2 \dot{\varepsilon} / \overline{D_r}$",Interpreter="latex");
     ylabel("$S$",Interpreter="latex");
     title('Simulation Results');
     fig_style(15);
