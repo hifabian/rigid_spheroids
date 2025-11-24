@@ -47,7 +47,7 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
     run('src/constants.m');
 
     parser = inputParser;
-    addParameter(parser, 'Lmax', 0);
+    addParameter(parser, 'Lmax', 1024);
     addParameter(parser, 'Ladaptive', false);
     addParameter(parser, 'threshold', 1e-6);
     addParameter(parser, 'type', 'xy');
