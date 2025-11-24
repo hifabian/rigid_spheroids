@@ -6,19 +6,30 @@ addpath(genpath('src/'));
 run('src/config.m');
 run('src/constants.m');
 
+%% Dummy plot for labels
+h_order = figure;
+hold on;
+hsr = plot(nan, nan, 'k-', LineWidth=2);
+hex = plot(nan, nan, 'k--', LineWidth=2);
+
+%% Reset colors
+ax = gca;
+ax.ColorOrderIndex = 1;
+
 %% Load data to plot
 res_mono = load(dataPath+"shear_mono_steady_4.809e-07_1.00.mat").result;
 res_poly = cell(1, 2);
-res_poly{1} = load(dataPath+"shear_poly_Lognormal_steady_4.809e-07_1.00").result;
-res_poly{2} = load(dataPath+"shear_poly_Normal_steady_4.809e-07_1.00").result;
+res_poly{1} = load(dataPath ...
+    +"shear_poly_Lognormal_steady_4.809e-07_1.00").result;
+res_poly{2} = load(dataPath ...
+    +"shear_poly_Normal_steady_4.809e-07_1.00").result;
 
 lmean = res_mono.lv;
 rp = ((1+res_mono.beta)./(1-res_mono.beta)).^0.5;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 
 %% Plot data
-h_order = helper(res_mono.sr/Dr_mean, res_mono.Sz);
-hold on;
+helper(res_mono.sr/Dr_mean, res_mono.Sz, 'handle', h_order);
 for i = 1:length(res_poly)
     helper(res_poly{i}.sr/Dr_mean, res_poly{i}.Sz, 'handle', h_order);
 end
@@ -28,22 +39,28 @@ ax = gca;
 ax.ColorOrderIndex = 1;
 
 %% Load data to plot
-res_mono = load(dataPath+"extension_mono_steady_4.809e-07_1.00.mat").result;
+res_mono = load(dataPath ...
+    +"extension_mono_steady_4.809e-07_1.00.mat").result;
 res_poly = cell(1, 2);
-res_poly{1} = load(dataPath+"extension_poly_Lognormal_steady_4.809e-07_1.00").result;
-res_poly{2} = load(dataPath+"extension_poly_Normal_steady_4.809e-07_1.00").result;
+res_poly{1} = load(dataPath ...
+    +"extension_poly_Lognormal_steady_4.809e-07_1.00").result;
+res_poly{2} = load(dataPath ...
+    +"extension_poly_Normal_steady_4.809e-07_1.00").result;
 
 lmean = res_mono.lv;
 rp = ((1+res_mono.beta)./(1-res_mono.beta)).^0.5;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 
 %% Plot data
-helper(2*res_mono.er/Dr_mean, res_mono.Sz, 'handle', h_order, 'LineStyle', "--");
+helper(2*res_mono.er/Dr_mean, res_mono.Sz, 'handle', h_order, ...
+    'LineStyle', "--");
 for i = 1:length(res_poly)
-    helper(2*res_poly{i}.er/Dr_mean, res_poly{i}.Sz, 'handle', h_order, 'LineStyle', "--");
+    helper(2*res_poly{i}.er/Dr_mean, res_poly{i}.Sz, ...
+        'handle', h_order, 'LineStyle', "--");
 end
 
-legend('Mono', 'Poly (Lognormal)', 'Poly (Normal)');
+legend("Shear", "Extension", ...
+    'Mono', 'Poly (Lognormal)', 'Poly (Normal)');
 legend('Location', 'best');
 
 hold off;
