@@ -23,7 +23,7 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
 %   fv:    Polydispersity probability density function f(lv)
 %   beta:  Bretherton parameter (scalar or vector for each rod)
 %
-%   Lmax (default=1024):            Maximum L value (must be even)
+%   Lmax (default=2048):            Maximum L value (must be even)
 %   Ladaptive (default=false):      Adaptively sets Lmax based on
 %       threshold; This is solves at least twice the problems and thus
 %       slow but accurate around specified threshold
@@ -47,7 +47,7 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
     run('src/constants.m');
 
     parser = inputParser;
-    addParameter(parser, 'Lmax', 1024);
+    addParameter(parser, 'Lmax', 2048);
     addParameter(parser, 'Ladaptive', false);
     addParameter(parser, 'threshold', 1e-6);
     addParameter(parser, 'type', 'xy');
@@ -62,7 +62,7 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
     verbose = parser.Results.verbose;
 
     if Ladaptive && Lmax == 0
-        Lmax = 1024;
+        Lmax = 2048;
     end
 
     assert(length(sr) == length(er) || isscalar(er) || isscalar(sr));
@@ -107,13 +107,13 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
         Lhmax = Lmax;
         Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
 
-        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax);
+        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax, 'verbose', verbose);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
     else  % Adaptive, using large precomputed matrix
-        [L2, G, iLy, W] = build_matrix(Lmax);
+        [L2, G, iLy, W] = build_matrix(Lmax, 'verbose', verbose);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side

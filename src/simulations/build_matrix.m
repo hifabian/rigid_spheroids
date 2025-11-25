@@ -1,4 +1,4 @@
-function [L2, G, iLy, W] = build_matrix(Lmax)
+function [L2, G, iLy, W] = build_matrix(Lmax, varargin)
 % Build matrix representations of operators:
 %
 %   \[ \mathsf{L2}  = \hat{L}^2 = - \nabla^2 \]
@@ -8,6 +8,22 @@ function [L2, G, iLy, W] = build_matrix(Lmax)
 %
 % Input
 %   Lmax:   Maximum L for spectral basis (always all m >= 0 values)
+%
+%   verbose (default=false):        Verbose output
+
+    parser = inputParser;
+    addParameter(parser, 'verbose', false);
+    parse(parser, varargin{:});
+    verbose = parser.Results.verbose;
+
+    if isfile("data/matrices_"+Lmax+".mat")
+        if verbose
+            disp('> FILE FOUND: Reading matrices from file');
+        end
+        load("data/matrices_"+Lmax+".mat", 'L2', 'G', 'iLy', 'W');
+        return;
+    end
+
 
     function g = g(m)
         if m == 0
@@ -138,4 +154,9 @@ function [L2, G, iLy, W] = build_matrix(Lmax)
     k = find(~i); i(k) = []; j(k) = []; v(k) = []; 
     k = find(~j); i(k) = []; j(k) = []; v(k) = []; 
     W = sparse(i, j, v, N, N);
+
+    if verbose
+        disp('> Saving file for matrices');
+    end
+    save("data/matrices_"+Lmax+".mat", 'L2', 'G', 'iLy', 'W');
 end

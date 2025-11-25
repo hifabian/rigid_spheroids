@@ -28,7 +28,7 @@ lognormal = makedist('Lognormal', ...
 
 
 %% Shear information
-Pe = logspace(-2,4,50);
+Pe = logspace(-2,6,50);
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = Dr_mean*Pe;
 er = 0;
@@ -49,7 +49,7 @@ for i = 1:length(distributions)
 end
 
 %% Extension information
-Pe = logspace(-2,2,30);
+Pe = logspace(-2,2,50);
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = 0;
 er = Dr_mean*Pe;

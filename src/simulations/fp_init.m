@@ -84,13 +84,13 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
         LmaxInfo = Lhmax;
         Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
 
-        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax);
+        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax, 'verbose', verbose);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
     else  % Adaptive, using large precomputed matrix
-        [L2, G, iLy, W] = build_matrix(Lmax);
+        [L2, G, iLy, W] = build_matrix(Lmax, 'verbose', verbose);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side

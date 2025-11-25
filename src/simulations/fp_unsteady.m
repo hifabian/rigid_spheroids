@@ -72,7 +72,7 @@ function result = fp_unsteady(init, T, sr, er, varargin)
     end
 
     % Pre-compute matrices
-    [L2, G, iLy, W] = build_matrix(init.Lmax);
+    [L2, G, iLy, W] = build_matrix(init.Lmax, 'verbose', verbose);
 
     Q = zeros(length(result.fv), length(result.t), 6);
     for j = 1:length(result.fv)
