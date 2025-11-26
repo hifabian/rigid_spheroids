@@ -36,21 +36,23 @@ RCHI = atan2(cos(THETA),sin(THETA).*cos(CHI));
 
 %% Compute
 for i = 1:length(sr)
-    init_mono = fp_init(sr(i), 0.0, lmean, 1.0, beta, 'verbose', true);
+    init_mono = fp_init(sr(i), 0.0, 0.0, lmean, 1.0, beta, ...
+        'verbose', true, 'Ladaptive', true);
     result.psiReal = to_real_space(init_mono.psi0{1}, RTHETA, RCHI, ...
         Lrecon, threshold);
     result.theta = THETA;
     result.chi = CHI;
-    save(dataPath+"shear_mono_realspace_"+Pe(i)+"_"+num2str(beta, '%.2f') ...
-        +".mat", 'result');
+    save(dataPath+"shear_mono_realspace_"+Pe(i)+"_" ...
+        +num2str(beta, '%.2f')+".mat", 'result');
 end
 
 for i = 1:length(sr)
-    init_mono = fp_init(0.0, sr(i), lmean, 1.0, beta, 'verbose', true);
+    init_mono = fp_init(0.0, sr(i), 0.0, lmean, 1.0, beta, ...
+        'verbose', true, 'Ladaptive', true);
     result.psiReal = to_real_space(init_mono.psi0{1}, RTHETA, RCHI, ...
         Lrecon, threshold);
     result.theta = THETA;
     result.chi = CHI;
-    save(dataPath+"extension_mono_realspace_"+Pe(i)+"_"+num2str(beta, '%.2f') ...
-        +".mat", 'result');
+    save(dataPath+"extension_mono_realspace_"+Pe(i)+"_" ...
+        +num2str(beta, '%.2f')+".mat", 'result');
 end

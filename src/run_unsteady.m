@@ -31,11 +31,12 @@ Pe = 10.0;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = Dr_mean*Pe;
 er = 0;
+wr = 0;
 
 % Monodisperse
-init_mono = fp_init(sr, er, lmean, 1.0, beta, 'verbose', true, ...
+init_mono = fp_init(sr, er, wr, lmean, 1.0, beta, 'verbose', true, ...
     'Ladaptive', true, 'Lmax', 256);
-result = fp_unsteady(init_mono, 10.0/Dr_mean, 0.0, 0.0);
+result = fp_unsteady(init_mono, 10.0/Dr_mean, 0.0, 0.0, 0.0);
 save(dataPath+"shear_mono_unsteady_"+lmean+"_"+num2str(beta, '%.2f') ...
     +".mat", 'result');
 
@@ -44,9 +45,9 @@ distributions = {lognormal, normal};
 for i = 1:length(distributions)
     fv = pdf(distributions{i}, lv);
     fv = fv / trapz(lv, fv);  % Discretized distribution instead
-    init_poly = fp_init(sr, er, lv, fv, beta, 'verbose', true, ...
+    init_poly = fp_init(sr, er, wr, lv, fv, beta, 'verbose', true, ...
         'Ladaptive', true, 'Lmax', 256);
-    result = fp_unsteady(init_poly, 10.0/Dr_mean, 0.0, 0.0);
+    result = fp_unsteady(init_poly, 10.0/Dr_mean, 0.0, 0.0, 0.0);
     save(dataPath+"shear_poly_"+distributions{i}.DistributionName ...
         +"_unsteady_"+lmean+"_"+num2str(beta, '%.2f')+".mat", 'result');
 end
@@ -56,11 +57,12 @@ Pe = 0.5*10.0;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = 0;
 er = Dr_mean*Pe;
+wr = 0;
 
 % Monodisperse
-init_mono = fp_init(sr, er, lmean, 1.0, beta, 'verbose', true, ...
+init_mono = fp_init(sr, er, wr, lmean, 1.0, beta, 'verbose', true, ...
     'Ladaptive', true, 'Lmax', 512);
-result = fp_unsteady(init_mono, 10.0/Dr_mean, 0.0, 0.0);
+result = fp_unsteady(init_mono, 10.0/Dr_mean, 0.0, 0.0, 0.0);
 save(dataPath+"extension_mono_unsteady_"+lmean+"_"+num2str(beta, '%.2f') ...
     +".mat", 'result');
 
@@ -69,9 +71,9 @@ distributions = {lognormal, normal};
 for i = 1:length(distributions)
     fv = pdf(distributions{i}, lv);
     fv = fv / trapz(lv, fv);  % Discretized distribution instead
-    init_poly = fp_init(sr, er, lv, fv, beta, 'verbose', true, ...
+    init_poly = fp_init(sr, er, wr, lv, fv, beta, 'verbose', true, ...
         'Ladaptive', true, 'Lmax', 512);
-    result = fp_unsteady(init_poly, 10.0/Dr_mean, 0.0, 0.0);
+    result = fp_unsteady(init_poly, 10.0/Dr_mean, 0.0, 0.0, 0.0);
     save(dataPath+"extension_poly_"+distributions{i}.DistributionName ...
         +"_unsteady_"+lmean+"_"+num2str(beta, '%.2f')+".mat", 'result');
 end

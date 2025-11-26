@@ -1,4 +1,4 @@
-function result = fp_init(sr0, er0, lv, fv, beta, varargin)
+function result = fp_init(sr0, er0, wr0, lv, fv, beta, varargin)
 % Solve initial state of Fokker-Planck equation for rod suspensions.
 %
 % Polydisperse if (lv, fv) form a grid (using trapezoiudal method).
@@ -13,6 +13,7 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
 % Input:
 %   sr0:   Single initial shear rate
 %   er0:   Single initial extension rate
+%   wr0:   Single initial rotation rate
 %   lv:    Rod length scalar (monodisperse) or vector (polydisperse)
 %   fv:    Polydispersity probability density function f(lv)
 %   beta:  Bretherton parameter (scalar or vector for each rod)
@@ -28,6 +29,7 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
 % Output:
 %   result.sr0:       Input initial shear rate
 %   result.er0:       Input initial extension rate
+%   result.wr0:       Input initial rotation rate
 %   result.Dr:        Input diffusion rates for all rods
 %   result.beta:      Input Bretherton parameters for all rods
 %   result.lv:        Input rod lengths
@@ -74,6 +76,7 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
     result.Dr = 3*kB*Temp*log(rp)./(pi*eta*lv.^3);  % Diffusion rates
     result.sr0 = sr0;  % Shear rate
     result.er0 = er0;  % Extension rate
+    result.wr0 = wr0;  % Rotation rate
     result.beta = bv;  % Bretherton parameter
     result.lv = lv;
     result.fv = fv;
@@ -111,11 +114,13 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
 
         srPe = sr0/result.Dr(j);
         erPe = er0/result.Dr(j);
+        wrPe = wr0/result.Dr(j);
 
         % High accuracy solution
         A = [0,       c(1:Nh)'; ...
              c(1:Nh), L2h ...
                      + srPe*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
+                     + wrPe*Lyh ...
                      + erPe*bv(j)*Wh];
         psi_coeff = A \ b(1:Nh+1); % [0,-psi]
 
@@ -143,6 +148,7 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
                 A = [0,       c(1:Nh)'; ...
                      c(1:Nh), L2h ...
                              + srPe*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
+                             + wrPe*Lyh ...
                              + erPe*bv(j)*Wh];
                 psi_coeff = A \ b(1:Nh+1);
                 err = norm(psi_ref(3:5)-psi_coeff((3:5)));
