@@ -9,12 +9,15 @@ function [L2, G, iLy, W] = build_matrix(Lmax, varargin)
 % Input
 %   Lmax:   Maximum L for spectral basis (always all m >= 0 values)
 %
-%   verbose (default=false):        Verbose output
+%   verbose (default=false):    Verbose output
+%   store (default=true):       Store matrices
 
     parser = inputParser;
     addParameter(parser, 'verbose', false);
+    addParameter(parser, 'store', true);
     parse(parser, varargin{:});
     verbose = parser.Results.verbose;
+    store = parser.Results.store;
 
     if isfile("data/matrices_"+Lmax+".mat")
         if verbose
@@ -155,8 +158,10 @@ function [L2, G, iLy, W] = build_matrix(Lmax, varargin)
     k = find(~j); i(k) = []; j(k) = []; v(k) = []; 
     W = sparse(i, j, v, N, N);
 
-    if verbose
-        disp('> Saving file for matrices');
+    if store
+        if verbose
+            disp('> Saving file for matrices');
+        end
+        save("data/matrices_"+Lmax+".mat", 'L2', 'G', 'iLy', 'W');
     end
-    save("data/matrices_"+Lmax+".mat", 'L2', 'G', 'iLy', 'W');
 end

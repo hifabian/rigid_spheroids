@@ -15,7 +15,7 @@ function [t, psi_coeff] = solve_unsteady(t, psi0_coeff, Lmax, beta, ...
 %   epsilon / epsilon(t):   Extension rate (constant or function of time)
 %   Dr:                     Diffusion coefficient
 
-    [L2, G, iLy, W] = build_matrix(Lmax);
+    [L2, G, iLy, W] = build_matrix(Lmax, 'store', false);
     L = -Dr*L2;
     S = beta*G+0.5*(1-beta)*iLy;
     W = beta*W;

@@ -17,7 +17,7 @@ function psi_coeff = solve_steady(Lmax, beta, srPe, erPe)
         x = v(2:end); % drop Lagrange multiplier (will be 0)
     end
 
-    [L2, G, iLy, W] = build_matrix(Lmax);
+    [L2, G, iLy, W] = build_matrix(Lmax, 'store', false);
     psi_coeff = solve_lagrange( ...
         -L2-srPe*(beta*G+0.5*(1-beta)*iLy)-erPe*beta*W);
 
