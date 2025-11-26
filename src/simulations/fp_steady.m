@@ -1,7 +1,7 @@
-function result = fp_steady(sr, er, lv, fv, beta, varargin)
+function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
 % Solve steady Fokker-Planck equation for rod suspensions.
 %
-% Polydisperse if (lv, fv) form a grid (using trapezoiudal method).
+% Polydisperse if (lv, fv) form a grid (using trapezoidal method).
 % Monodisperse is solved if lv is a scalar.
 %
 % The diffusion rate for aspect ratio $r$ and length $l$ is given by:
@@ -19,6 +19,7 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
 % Input:
 %   sr:    Shear rate or list of shear rates
 %   er:    Extension rate or list of extension rates
+%   wr:    Rotation rate or list of rotation rates
 %   lv:    Rod length scalar (monodisperse) or vector (polydisperse)
 %   fv:    Polydispersity probability density function f(lv)
 %   beta:  Bretherton parameter (scalar or vector for each rod)
@@ -66,15 +67,20 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
     end
 
     assert(length(sr) == length(er) || isscalar(er) || isscalar(sr));
-    selength = max(length(sr), length(er));
+    assert(length(sr) == length(wr) || isscalar(wr) || isscalar(sr));
+    selength = max([length(sr), length(er), length(wr)]);
     
     result.sr = sr;
     result.er = er;
+    result.wr = wr;
     if isscalar(sr)
         result.sr = repmat(sr, 1, selength);
     end
     if isscalar(er)
         result.er = repmat(er, 1, selength);
+    end
+    if isscalar(wr)
+        result.wr = repmat(wr, 1, selength);
     end
 
     if verbose
@@ -134,14 +140,12 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
 
         for j = 1:length(fv)
 
-            srPe = result.sr(i)/result.Dr(j);
-            erPe = result.er(i)/result.Dr(j);
-
             % High accuracy solution
             A = [0,       c(1:Nh)'; ...
-                 c(1:Nh), L2h ...
-                         + srPe*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
-                         + erPe*bv(j)*Wh];
+                 c(1:Nh), result.Dr(j)*L2h ...
+                        + result.sr(i)*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
+                        + result.wr(i)*Lyh ...
+                        + result.er(i)*bv(j)*Wh];
             psi_coeff = A \ b(1:Nh+1); % [0,-psi]
 
             if Ladaptive
@@ -166,9 +170,10 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
                     psi_ref = psi_coeff;
                     % Recompute high accuracy solution
                     A = [0,       c(1:Nh)'; ...
-                         c(1:Nh), L2h ...
-                                 + srPe*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
-                                 + erPe*bv(j)*Wh];
+                         c(1:Nh), result.Dr(j)*L2h ...
+                            + result.sr(i)*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
+                            + result.wr(i)*Lyh ...
+                            + result.er(i)*bv(j)*Wh];
                     psi_coeff = A \ b(1:Nh+1);
                     err = norm(psi_ref(3:5)-psi_coeff((3:5)));
                 end
