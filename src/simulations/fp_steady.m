@@ -185,7 +185,7 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
                 end
             end
 
-            psi_coeff = -psi_coeff(2:end); % drop Lagrange multiplier
+            psi_coeff = psi_coeff(2:end); % drop Lagrange multiplier
             Q(j,:) = order_matrix(psi_coeff, 'type', type);
         end
 

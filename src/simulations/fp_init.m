@@ -160,7 +160,7 @@ function result = fp_init(sr0, er0, lv, fv, beta, varargin)
             end
         end
 
-        result.psi0{j} = -psi_coeff(2:end); % drop Lagrange multiplier
+        result.psi0{j} = psi_coeff(2:end); % drop Lagrange multiplier
 
     end
 
