@@ -1,0 +1,16 @@
+{
+    "creators": [
+        {
+            "name": "Hillebrand, Fabian",
+            "orcid": "0000-0001-8996-8920",
+            "affiliation": "Okinawa Institute of Science and Technology Graduate University",
+        }
+    ],
+    "contributors": [
+    ],
+    "title": "A (Galerkin) Spectral Method for Rigid Spheroids under Flow",
+    "access_right": "open",
+    "license": "GPL-3",
+    "upload_type": "software",
+    "language": "eng",
+}
