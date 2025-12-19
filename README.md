@@ -1,4 +1,4 @@
-#A (Galerkin) Spectral Method for Brownian Rigid Spheroids under Flow
+# A (Galerkin) Spectral Method for Brownian Rigid Spheroids under Flow
 
 This project provides a numerical simulation tool based on the (Galerkin) spectral method using real spherical harmonics to solve the Fokker-Planck equation describing Brownian rigid spheroids in 3D.
 Specifically, this simulation tool solves for the orientation distribution of rigid spheroids in a dilute solution.
