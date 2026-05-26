@@ -171,7 +171,6 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
                             + result.er(i)*bv(j)*Wh];
                     psi_coeff = A \ b(1:Nh+1);
                     err = norm(psi_ref(3:5)-psi_coeff((3:5)));
-                    [size(psi_ref), size(psi_coeff)]
                 end
                 % Check if too small, then decrease resolution for next
                 % step
