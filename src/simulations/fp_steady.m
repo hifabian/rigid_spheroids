@@ -113,7 +113,8 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
         Lhmax = Lmax;
         Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
 
-        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax, 'verbose', verbose);
+        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax, 'verbose', verbose, ...
+                                                'store', false);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side
@@ -125,10 +126,8 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
         b = zeros(size(L2,1)+1,1); % right-hand-side
         b(1) = 1;
 
-        Lhmax = 32;
+        Lhmax = 16;
         Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-        Llmax = 16;
-        Nl = 1+0.25*Llmax*Llmax+Llmax;
 
         L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
         Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
@@ -149,9 +148,7 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
             psi_coeff = A \ b(1:Nh+1); % [0,-psi]
 
             if Ladaptive
-                % Low accuracy reference
-                psi_ref = A(1:Nl+1,1:Nl+1) \ b(1:Nl+1);
-                err = norm(psi_ref(3:5)-psi_coeff((3:5)));
+                err = inf;
                 % Refine until small
                 while err > threshold*norm(psi_coeff(3:5))
                     if Lhmax == Lmax
@@ -162,10 +159,8 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
                     Lhmax = min(Lmax, Lhmax*2);
                     LmaxInfo = max(Lhmax, LmaxInfo);
                     Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-                    Llmax = Lhmax*0.5;
-                    Nl = 1+0.25*Llmax*Llmax+Llmax;
                     L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
-                    Lyh = L2(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+                    Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
                     % Set high -> low
                     psi_ref = psi_coeff;
                     % Recompute high accuracy solution
@@ -176,17 +171,12 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
                             + result.er(i)*bv(j)*Wh];
                     psi_coeff = A \ b(1:Nh+1);
                     err = norm(psi_ref(3:5)-psi_coeff((3:5)));
+                    [size(psi_ref), size(psi_coeff)]
                 end
                 % Check if too small, then decrease resolution for next
                 % step
                 if Lhmax > 32 && err < 1e-2*threshold*norm(psi_coeff(3:5))
-                    Lhmax = 0.5*Lhmax;
-                    Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-                    Llmax = Lhmax*0.25;
-                    Nl = 1+0.25*Llmax*Llmax+Llmax;
-                    % Set low -> high
-                    L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
-                    Lyh = L2(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+                    Lhmax = 0.25*Lhmax;
                 end
             end
 
