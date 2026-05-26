@@ -37,8 +37,6 @@ function result = fp_init(sr0, er0, wr0, lv, fv, beta, varargin)
 %   result.psi0:      Probabilty density function psi{l}(idx(l,m)) at t=0
 %   result.Lmax:      Maximum Lmax used among all psi0.
 
-%% TODO remove in favor of just fp_steady!
-
     run('src/constants.m');
 
     parser = inputParser;
