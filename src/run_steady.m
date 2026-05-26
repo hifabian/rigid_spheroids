@@ -7,12 +7,12 @@ run('src/config.m');
 run('src/constants.m');
 
 %% Setup
-lmean = 480.9e-9;  % Length distribution mean
-dmean = 5.6e-9;    % Mean diameter of rods
+lmean = 480.9e-9;    % Length distribution mean
+dmean = 5.6e-9;      % Mean diameter of rods
 lsigma = lmean*0.5;  % Length distribution standard deviation
 
-rp   = lmean/dmean;           % (0: disk, 1: sphere, +infty: rod)
-beta = (rp.^2 - 1)/(rp.^2 + 1); % (-1: disk, 0: sphere, 1: rod)
+rp   = lmean/dmean;              % (0: disk, 1: sphere, +infty: rod)
+beta = (rp.^2 - 1)./(rp.^2 + 1); % (-1: disk, 0: sphere, 1: rod)
 
 lmin = max(lmean - 5*lsigma,lmean/rp);
 lmax = lmean + 5*lsigma;
@@ -26,8 +26,7 @@ lognormal = makedist('Lognormal', ...
     'mu', log(lmean^2/sqrt(lsigma^2+lmean^2)), ...
     'sigma', sqrt(log(lsigma^2/lmean^2+1)));
 
-
-%% Shear information
+%% Simple shear information
 Pe = logspace(-2,6,50);
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = Dr_mean*Pe;
@@ -51,7 +50,7 @@ for i = 1:length(distributions)
         +"_steady_"+lmean+"_"+num2str(beta, '%.2f')+".mat", 'result');
 end
 
-%% Extension information
+%% Planar extension information
 Pe = logspace(-2,2,50);
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 sr = 0;
