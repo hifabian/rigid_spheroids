@@ -71,8 +71,9 @@ function result = fp_unsteady(init, T, sr, er, wr, varargin)
     result.lv = init.lv;
     result.fv = init.fv;
 
-    result.Sz = zeros(length(result.t),1);
     result.Sy = zeros(length(result.t),1);
+    result.Sz = zeros(length(result.t),1);
+    result.Sx = zeros(length(result.t),1);
     result.ExtChi = zeros(length(result.t),1);
     result.ExtTheta = zeros(length(result.t),1);
 
@@ -103,9 +104,11 @@ function result = fp_unsteady(init, T, sr, er, wr, varargin)
     end
 
     % Quantities of interest
-    [Sy, Sz, ExtChi, ExtTheta] = order_parameters(meanQ);
-    result.Sz = Sz;
+    [Sy, Sz, Sx, ExtChi, ExtTheta] = order_parameters(meanQ);
     result.Sy = Sy;
+    result.Sz = Sz;
+    result.Sx = Sx;
+    
     result.ExtChi = ExtChi;
     result.ExtTheta = ExtTheta;
 

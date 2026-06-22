@@ -5,8 +5,8 @@ function psi_coeff = solve_steady(Lmax, beta, srPe, wrPe, erPe, varargin)
 %   Lmax:   Maximum L for spectral basis
 %   beta:   Bretherton parameter
 %   srPe:   Peclet number based on shear rate
-%   wrPe:   Peclet number based on rotational rate
-%   erPe:   Peclet number based on extensional rate
+%   wrPe:   Peclet number based on rotation rate
+%   erPe:   Peclet number based on extension rate
 
 %   Ladaptive (default=false):      Adaptively sets Lmax based on
 %       threshold; This is solves at least twice the problems and thus
@@ -29,8 +29,8 @@ function psi_coeff = solve_steady(Lmax, beta, srPe, wrPe, erPe, varargin)
         Lhmax = Lmax;
         Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
 
-        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax, 'verbose', verbose, ...
-                                                'store', false);
+        [L2h, Gh, Lyh, Wh] = build_matrix(Lhmax, 'verbose', verbose, ...
+                                                 'store', false);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side

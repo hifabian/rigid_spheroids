@@ -101,8 +101,9 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
     result.lv = lv;
     result.fv = fv;
 
-    result.Sz = zeros(selength,1);
     result.Sy = zeros(selength,1);
+    result.Sz = zeros(selength,1);
+    result.Sx = zeros(selength,1);
     result.ExtChi = zeros(selength,1);
     result.ExtTheta = zeros(selength,1);
 
@@ -192,9 +193,10 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
         end
 
         % Quantities of interest
-        [Sy, Sz, ExtChi, ExtTheta] = order_parameters(meanQ);
-        result.Sz(i,:) = Sz;
+        [Sy, Sz, Sx, ExtChi, ExtTheta] = order_parameters(meanQ);
         result.Sy(i,:) = Sy;
+        result.Sz(i,:) = Sz;
+        result.Sx(i,:) = Sx;
         result.ExtChi(i,:) = ExtChi;
         result.ExtTheta(i,:) = ExtTheta;
 
