@@ -9,11 +9,11 @@ set(groot, 'defaultTextInterpreter', 'latex');
 set(groot, 'defaultAxesTickLabelInterpreter', 'latex');
 set(groot, 'defaultLegendInterpreter', 'latex');
 
-%% Simple shear flow
+%% Simple shear flow xz
 Pe = [1e1, 1e3, 1e5];
-l = load(dataPath+"convergence_shear_steady.mat").l;
-errs = load(dataPath+"convergence_shear_steady.mat").errs;
-errsl2 = load(dataPath+"convergence_shear_steady.mat").errsl2;
+l = load(dataPath+"convergence_shear-xz_steady.mat").l;
+errs = load(dataPath+"convergence_shear-xz_steady.mat").errs;
+errsl2 = load(dataPath+"convergence_shear-xz_steady.mat").errsl2;
 
 figure(1);
 hold on;
@@ -52,20 +52,19 @@ text(labelAx, -0.0, 1., '(a)', ...
 
 set(gcf, 'Units', 'centimeters', 'Position', [5 5 14 9]);
 
-exportgraphics(gcf,outputPath+"convergence_simple-shear.pdf", ...
+exportgraphics(gcf,outputPath+"convergence_simple-shear-xz.pdf", ...
                'ContentType','vector');
 
-
-%% Planar extension flow
-Pe = [1e0, 1e2, 1e4];
-l = load(dataPath+"convergence_extension_steady.mat").l;
-errs = load(dataPath+"convergence_extension_steady.mat").errs;
-errsl2 = load(dataPath+"convergence_extension_steady.mat").errsl2;
+%% Simple shear flow yz
+Pe = [1e1, 1e3, 1e5];
+l = load(dataPath+"convergence_shear-yz_steady.mat").l;
+errs = load(dataPath+"convergence_shear-yz_steady.mat").errs;
+errsl2 = load(dataPath+"convergence_shear-yz_steady.mat").errsl2;
 
 figure(2);
 hold on;
 set(gca, 'Layer', 'top', 'LineWidth', 0.75, 'Box', 'on');
-ylim([1e-16, 1e3])
+ylim([1e-16, 1])
 xlim([0, 1000])
 yscale('log');
 ylabel("$\| \psi_\mathrm{ref}-\psi_{\ell_\mathrm{max}} \| \,/\, " + ...
@@ -83,11 +82,12 @@ legend('show', ...
     'Interpreter', 'latex', ...
     'Location', 'northeast', ...
     'FontSize', 14);
+
 labelAx = axes(gcf, ...
     'Position', [0 0 1 1], ...
     'Visible', 'off', ...
     'Units', 'normalized');
-text(labelAx, -0.0, 1., '(b)', ...
+text(labelAx, -0.0, 1., '(a)', ...
     'Units', 'normalized', ...
     'Interpreter', 'latex', ...
     'FontSize', 20, ...
@@ -98,5 +98,5 @@ text(labelAx, -0.0, 1., '(b)', ...
 
 set(gcf, 'Units', 'centimeters', 'Position', [5 5 14 9]);
 
-exportgraphics(gcf,outputPath+"convergence_planar-extension.pdf", ...
+exportgraphics(gcf,outputPath+"convergence_simple-shear-yz.pdf", ...
                'ContentType','vector');
