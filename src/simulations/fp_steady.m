@@ -45,7 +45,9 @@ function result = fp_steady(sxz, syz, lv, fv, beta, varargin)
 %   result.ExtChi:    Extinction angle for chi
 %   result.ExtTheta:  Extinction angle for theta
 
-    run('src/constants.m');
+    constants_path = fullfile(fileparts(mfilename('fullpath')), '../..', ...
+        'src', 'constants.m');
+    run(constants_path);
 
     parser = inputParser;
     addParameter(parser, 'Lmax', 2048);
@@ -53,6 +55,7 @@ function result = fp_steady(sxz, syz, lv, fv, beta, varargin)
     addParameter(parser, 'threshold', 1e-6);
     addParameter(parser, 'type', 'xz');
     addParameter(parser, 'verbose', false);
+    addParameter(parser, 'store', true);
 
     parse(parser, varargin{:});
     
@@ -61,6 +64,7 @@ function result = fp_steady(sxz, syz, lv, fv, beta, varargin)
     threshold = parser.Results.threshold;
     type = parser.Results.type;
     verbose = parser.Results.verbose;
+    store = parser.Results.store;
 
     if Ladaptive && Lmax == 0
         Lmax = 2048;
@@ -72,7 +76,7 @@ function result = fp_steady(sxz, syz, lv, fv, beta, varargin)
     result.sxz = sxz;
     result.syz = syz;
     if isscalar(sxz)
-        result.sxz = repmat(sr, 1, selength);
+        result.sxz = repmat(sxz, 1, selength);
     end
     if isscalar(syz)
         result.syz = repmat(syz, 1, selength);
@@ -116,7 +120,8 @@ function result = fp_steady(sxz, syz, lv, fv, beta, varargin)
         b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
     else  % Adaptive, using large precomputed matrix
-        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, 'verbose', verbose);
+        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, ...
+            'verbose', verbose, 'store', store);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side

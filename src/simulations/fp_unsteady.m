@@ -28,18 +28,22 @@ function result = fp_unsteady(init, T, sxz, syz, varargin)
 %   result.ExtChi:    Extinction angle for chi
 %   result.ExtTheta:  Extinction angle for theta
 
-    run('src/constants.m');
+    constants_path = fullfile(fileparts(mfilename('fullpath')), '../..', ...
+        'src', 'constants.m');
+    run(constants_path);
 
     parser = inputParser;
     addParameter(parser, 'dt', T/100);
     addParameter(parser, 'type', 'xz');
     addParameter(parser, 'verbose', false);
+    addParameter(parser, 'store', false);
 
     parse(parser, varargin{:});
     
     dt = parser.Results.dt;
     type = parser.Results.type;
     verbose = parser.Results.verbose;
+    store = parser.Results.store;
 
     if isnumeric(T) && isscalar(T)
         result.t = 0:dt:T;
@@ -74,7 +78,8 @@ function result = fp_unsteady(init, T, sxz, syz, varargin)
     end
 
     % Pre-compute matrices
-    [L2, Gxz, iLy, Gyz, iLx] = build_matrix(init.Lmax, 'verbose', verbose);
+    [L2, Gxz, iLy, Gyz, iLx] = build_matrix(init.Lmax, ...
+        'verbose', verbose, 'store', store);
 
     Q = zeros(length(result.fv), length(result.t), 6);
     for j = 1:length(result.fv)

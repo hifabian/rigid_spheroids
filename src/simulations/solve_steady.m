@@ -19,6 +19,7 @@ function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
     addParameter(parser, 'threshold', 1e-6);
     addParameter(parser, 'verbose', false);
     addParameter(parser, 'alwaysread', false);
+    addParameter(parser, 'store', false);
 
     parse(parser, varargin{:});
     
@@ -26,19 +27,22 @@ function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
     threshold = parser.Results.threshold;
     verbose = parser.Results.verbose;
     alwaysread = parser.Results.alwaysread;
+    store = parser.Results.store;
 
     if ~Ladaptive
         Lhmax = Lmax;
         Nh = 1+0.5*Lhmax*(Lhmax+1)+Lhmax;
 
         [L2h, Gxzh, Lyh, Gyzh, Lxh] = build_matrix(Lhmax, ...
-            'verbose', verbose, 'store', false, 'alwaysread', alwaysread);
+            'verbose', verbose, 'store', false, 'alwaysread', alwaysread, ...
+            'store', store);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
     else
-        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, 'verbose', verbose);
+        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, 'verbose', verbose, ...
+            'store', false);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side

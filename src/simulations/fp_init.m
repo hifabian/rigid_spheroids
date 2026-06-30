@@ -35,22 +35,24 @@ function result = fp_init(sxz0, syz0, lv, fv, beta, varargin)
 %   result.psi0:      Probabilty density function psi{l}(idx(l,m)) at t=0
 %   result.Lmax:      Maximum Lmax used among all psi0.
 
-    run('src/constants.m');
+    constants_path = fullfile(fileparts(mfilename('fullpath')), '../..', ...
+        'src', 'constants.m');
+    run(constants_path);
 
     parser = inputParser;
     addParameter(parser, 'Lmax', 1024);
     addParameter(parser, 'Ladaptive', false);
     addParameter(parser, 'threshold', 1e-6);
-    addParameter(parser, 'type', 'xz');
     addParameter(parser, 'verbose', false);
+    addParameter(parser, 'store', true);
 
     parse(parser, varargin{:});
     
     Lmax = parser.Results.Lmax;
     Ladaptive = parser.Results.Ladaptive;
     threshold = parser.Results.threshold;
-    type = parser.Results.type;
     verbose = parser.Results.verbose;
+    store = parser.Results.store;
 
     if Ladaptive && Lmax == 0
         Lmax = 1024;
@@ -89,7 +91,8 @@ function result = fp_init(sxz0, syz0, lv, fv, beta, varargin)
         b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
     else  % Adaptive, using large precomputed matrix
-        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, 'verbose', verbose);
+        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, ...
+            'verbose', verbose, 'store', store);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side
