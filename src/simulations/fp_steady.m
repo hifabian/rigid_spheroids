@@ -1,4 +1,4 @@
-function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
+function result = fp_steady(sxz, syz, lv, fv, beta, varargin)
 % Solve steady Fokker-Planck equation for rod suspensions.
 %
 % Polydisperse if (lv, fv) form a grid (using trapezoidal method).
@@ -7,19 +7,18 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
 % The diffusion rate for aspect ratio $r$ and length $l$ is given by:
 % \[ D_r(l) = 3 k_B T \log(r) / (\pi \eta l^3). \]
 %
-% The flow type is determined by sr and er. They may be either:
-%   1. sr and er are scalars, or
-%   2. sr is a vector, and er is a scalar, or
-%   3. sr is a scalar, and er is a vector, or
-%   4. sr and er are vectors of the same length.
+% The flow type is determined by sxz and syz. They may be either:
+%   1. sxz and syz are scalars, or
+%   2. sxz is a vector, and syz is a scalar, or
+%   3. sxz is a scalar, and syz is a vector, or
+%   4. sxz and syz are vectors of the same length.
 %
 % WARNING: Bretherton parameter of 1 and -1 lead to ill-defined
 %          diffusion rates and result in an error.
 %
 % Input:
-%   sr:    Shear rate or list of shear rates
-%   er:    Extension rate or list of extension rates
-%   wr:    Rotation rate or list of rotation rates
+%   sxz:   xz-Shear rate or list of shear rates
+%   syz:   yz-Shear rate or list of shear rates
 %   lv:    Rod length scalar (monodisperse) or vector (polydisperse)
 %   fv:    Polydispersity probability density function f(lv)
 %   beta:  Bretherton parameter (scalar or vector for each rod)
@@ -29,19 +28,20 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
 %       threshold; This is solves at least twice the problems and thus
 %       slow but accurate around specified threshold
 %   threshold (default=1e-6):       Threshold
-%   type ('xy' (default) or 'xz'):  Type of plane
+%   type ('xy' or 'xz' (default)):  Type of plane (rotating z->y)
 %   verbose (default=false):        Verbose output
 %
 % Output:
-%   result.sr:        Input shear rate(s)
-%   result.er:        Input extension rate(s)
+%   result.sxz:        Input xz-shear rate(s)
+%   result.syz:        Input yz-shear rate(s)
 %   result.Dr:        Input diffusion rates for all rods
 %   result.beta:      Input Bretherton parameters for all rods
 %   result.lv:        Input rod lengths
 %   result.fv:        Input polydisperisty probability density function
 %
-%   result.Sz:        Order parameter for z
 %   result.Sy:        Order parameter for y
+%   result.Sz:        Order parameter for z
+%   result.Sx:        Order parameter for x
 %   result.ExtChi:    Extinction angle for chi
 %   result.ExtTheta:  Extinction angle for theta
 
@@ -51,7 +51,7 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
     addParameter(parser, 'Lmax', 2048);
     addParameter(parser, 'Ladaptive', false);
     addParameter(parser, 'threshold', 1e-6);
-    addParameter(parser, 'type', 'xy');
+    addParameter(parser, 'type', 'xz');
     addParameter(parser, 'verbose', false);
 
     parse(parser, varargin{:});
@@ -66,21 +66,16 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
         Lmax = 2048;
     end
 
-    assert(length(sr) == length(er) || isscalar(er) || isscalar(sr));
-    assert(length(sr) == length(wr) || isscalar(wr) || isscalar(sr));
-    selength = max([length(sr), length(er), length(wr)]);
+    assert(length(sxz) == length(syz) || isscalar(syz) || isscalar(sxz));
+    selength = max([length(sxz), length(syz)]);
     
-    result.sr = sr;
-    result.er = er;
-    result.wr = wr;
-    if isscalar(sr)
-        result.sr = repmat(sr, 1, selength);
+    result.sxz = sxz;
+    result.syz = syz;
+    if isscalar(sxz)
+        result.sxz = repmat(sr, 1, selength);
     end
-    if isscalar(er)
-        result.er = repmat(er, 1, selength);
-    end
-    if isscalar(wr)
-        result.wr = repmat(wr, 1, selength);
+    if isscalar(syz)
+        result.syz = repmat(syz, 1, selength);
     end
 
     if verbose
@@ -112,26 +107,27 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
     if ~Ladaptive
         % non addaptive, or adaptive
         Lhmax = Lmax;
-        Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+        Nh = 1+0.5*Lhmax*(Lhmax+1)+Lhmax;
 
-        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax, 'verbose', verbose, ...
-                                                'store', false);
+        [L2h, Gxzh, Lyh, Gyzh, Lxh] = build_matrix(Lhmax, ...
+            'verbose', verbose, 'store', false);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
     else  % Adaptive, using large precomputed matrix
-        [L2, G, iLy, W] = build_matrix(Lmax, 'verbose', verbose);
+        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, 'verbose', verbose);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side
         b(1) = 1;
 
         Lhmax = 16;
-        Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+        Nh = 1+0.5*Lhmax*(Lhmax+1)+Lhmax;
 
-        L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
-        Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+        L2h = L2(1:Nh,1:Nh);
+        Gxzh = Gxz(1:Nh,1:Nh); Lyh = iLy(1:Nh,1:Nh);
+        Gyzh = Gyz(1:Nh,1:Nh); Lxh = iLx(1:Nh,1:Nh);
     end
 
     for i = 1:selength
@@ -142,11 +138,10 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
 
             % High accuracy solution
             A = [0,       c(1:Nh)'; ...
-                 c(1:Nh), result.Dr(j)*L2h ...
-                        + result.sr(i)*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
-                        + result.wr(i)*Lyh ...
-                        + result.er(i)*bv(j)*Wh];
-            psi_coeff = A \ b(1:Nh+1); % [0,-psi]
+                 c(1:Nh), -result.Dr(j)*L2h ...
+                         - result.sxz(i)*(bv(j)*Gxzh+0.5*(1-bv(j))*Lyh) ...
+                         - result.syz(i)*(bv(j)*Gyzh-0.5*(1-bv(j))*Lxh)];
+            psi_coeff = A \ b(1:Nh+1);
 
             if Ladaptive
                 err = inf;
@@ -159,17 +154,17 @@ function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
                     end
                     Lhmax = min(Lmax, Lhmax*2);
                     LmaxInfo = max(Lhmax, LmaxInfo);
-                    Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-                    L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
-                    Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+                    Nh = 1+0.5*Lhmax*(Lhmax+1)+Lhmax;
+                    L2h = L2(1:Nh,1:Nh);
+                    Gxzh = Gxz(1:Nh,1:Nh); Lyh = iLy(1:Nh,1:Nh);
+                    Gyzh = Gyz(1:Nh,1:Nh); Lxh = iLx(1:Nh,1:Nh);
                     % Set high -> low
                     psi_ref = psi_coeff;
                     % Recompute high accuracy solution
                     A = [0,       c(1:Nh)'; ...
-                         c(1:Nh), result.Dr(j)*L2h ...
-                            + result.sr(i)*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
-                            + result.wr(i)*Lyh ...
-                            + result.er(i)*bv(j)*Wh];
+                         c(1:Nh), -result.Dr(j)*L2h ...
+                         - result.sxz(i)*(bv(j)*Gxzh+0.5*(1-bv(j))*Lyh) ...
+                         - result.syz(i)*(bv(j)*Gyzh-0.5*(1-bv(j))*Lxh)];
                     psi_coeff = A \ b(1:Nh+1);
                     err = norm(psi_ref(3:5)-psi_coeff((3:5)));
                 end
