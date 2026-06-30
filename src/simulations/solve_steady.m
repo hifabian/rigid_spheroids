@@ -19,7 +19,7 @@ function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
     addParameter(parser, 'threshold', 1e-6);
     addParameter(parser, 'verbose', false);
     addParameter(parser, 'alwaysread', false);
-    addParameter(parser, 'store', false);
+    addParameter(parser, 'store', true);
 
     parse(parser, varargin{:});
     
@@ -42,7 +42,7 @@ function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
         b(1) = 1;
     else
         [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, 'verbose', verbose, ...
-            'store', false);
+            'store', store);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side
