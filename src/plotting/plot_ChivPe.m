@@ -10,7 +10,7 @@ run('src/constants.m');
 res_mono = load(dataPath+"shear_mono_steady_4.809e-07_1.00.mat").result;
 res_poly = cell(1, 2);
 res_poly{1} = load(dataPath ...
-    +"shear_poly_Lognormal_steady_4.809e-07_1.00.mat").result;
+    +"shear_poly_Normal_steady_4.809e-07_1.00.mat").result;
 res_poly{2} = load(dataPath ...
     +"shear_poly_Lognormal_steady_4.809e-07_1.00.mat").result;
 
@@ -21,11 +21,11 @@ Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*(220*1e-9)^3);
 
 %% Plot data
 h_angle = helper((res_mono.sxz.^2+res_mono.syz.^2).^0.5/Dr_mean, ...
-    res_mono.ExtChi);
+    pi-res_mono.ExtTheta);
 hold on;
 for i = 1:length(res_poly)
     helper((res_poly{i}.sxz.^2+res_poly{i}.syz.^2).^0.5/Dr_mean, ...
-        res_poly{i}.ExtChi, 'handle', h_angle);
+        pi-res_poly{i}.ExtTheta, 'handle', h_angle);
 end
 legend('Mono', 'Poly (Lognormal)', 'Poly (Normal)');
 legend('Location', 'best');

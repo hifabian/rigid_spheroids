@@ -10,7 +10,6 @@ run('src/constants.m');
 h_order = figure;
 hold on;
 hsr = plot(nan, nan, 'k-', LineWidth=2);
-hex = plot(nan, nan, 'k--', LineWidth=2);
 
 %% Reset colors
 ax = gca;
