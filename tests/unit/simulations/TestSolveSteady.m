@@ -75,5 +75,72 @@ classdef TestSolveSteady < matlab.unittest.TestCase
             psi_mz_rotated = T * psi_xz;
             tc.verifyEqual(psi_mz_rotated, psi_mz, 'AbsTol', 1e-10);
         end
+
+        function testXZvsYZRelfectionAdaptive(tc)
+            % (y=-x)-reflection between xz and yz shear 
+            psi_xz = solve_steady(64, 0.5, 10.0, 0.0, ...
+                'Ladaptive', true, 'store', false);
+            psi_yz = solve_steady(64, 0.5, 0.0, 10.0, ...
+                'Ladaptive', true, 'store', false);
+            N = size(psi_xz, 1);
+            T = speye(N);
+            [Lmax, ~] = lmdx(N);
+            for l = 0:2:Lmax
+                for m = 1:l
+                    ii = idx(l,  m, Lmax);
+                    jj = idx(l, -m, Lmax);
+                    c = cos(m*pi/2); s = sin(m*pi/2);
+                    % 2x2 reflection block for (+m, -m) pair
+                    T(ii,ii) = c; T(ii,jj) =  s;
+                    T(jj,ii) = s; T(jj,jj) = -c;
+                end
+            end
+            psi_yz_rotated = T * psi_xz;
+            tc.verifyEqual(psi_yz_rotated, psi_yz, 'AbsTol', 1e-6);
+        end
+
+        function testXZvsMixedReflectionAdaptive(tc)
+            % reflection along tan(theta)=(syz/sxy) and with
+            % (sxz^2+syz^2)^0.5 shear-rate
+            sxz = 100.0; syz = 20.0;
+            theta = atan2(syz,sxz);
+            psi_xz = solve_steady(64, 0.5, (sxz^2+syz^2)^0.5, 0.0, ...
+                'Ladaptive', true, 'store', false);
+            psi_mz = solve_steady(64, 0.5, sxz, syz, ...
+                'Ladaptive', true, 'store', false);
+            N = size(psi_xz, 1);
+            T = speye(N);
+            [Lmax, ~] = lmdx(N);
+            for l = 0:2:Lmax
+                for m = 1:l
+                    ii = idx(l,  m, Lmax);
+                    jj = idx(l, -m, Lmax);
+                    c = cos(m*theta); s = sin(m*theta);
+                    % 2x2 reflection block for (+m, -m) pair
+                    T(ii,ii) = c; T(ii,jj) =  s;
+                    T(jj,ii) = s; T(jj,jj) = -c;
+                end
+            end
+            psi_mz_rotated = T * psi_xz;
+            tc.verifyEqual(psi_mz_rotated, psi_mz, 'AbsTol', 1e-10);
+        end
+
+        function testAdaptive(tc)
+            % reflection along tan(theta)=(syz/sxy) and with
+            % (sxz^2+syz^2)^0.5 shear-rate
+            sxz = 100.0; syz = 20.0;
+            psi_direct = solve_steady(64, 0.5, sxz, syz, ...
+                'Ladaptive', false, 'store', false);
+            psi_adapt = solve_steady(64, 0.5, sxz, syz, ...
+                'Ladaptive', true, 'store', false);
+            Q_d = order_matrix(psi_direct, 'type', 'xz');
+            Q_a = order_matrix(psi_adapt, 'type', 'xz');
+            [Sy_d, Sz_d, Sx_d] = order_parameters(Q_d);
+            [Sy_a, Sz_a, Sx_a] = order_parameters(Q_a);
+            tc.verifyEqual(Sz_d, Sz_a, 'AbsTol', 1e-10);
+            tc.verifyEqual(Sy_d, Sy_a, 'AbsTol', 1e-10);
+            tc.verifyEqual(Sx_d, Sx_a, 'AbsTol', 1e-10);
+        end
+
     end
 end
