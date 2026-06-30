@@ -1,24 +1,90 @@
-function psi_coeff = solve_steady(Lmax, beta, srPe, erPe)
+function psi_coeff = solve_steady(Lmax, beta, srPe, wrPe, erPe, varargin)
 % Solve single steady Fokker-Planck equation.
 %
 % Input:
 %   Lmax:   Maximum L for spectral basis
 %   beta:   Bretherton parameter
 %   srPe:   Peclet number based on shear rate
-%   erPe:   Peclet number based on extensional rate
+%   wrPe:   Peclet number based on rotation rate
+%   erPe:   Peclet number based on extension rate
 
-    function x = solve_lagrange(A)
-    % Solve system with Lagrange multiplier for normalization.
-        c = sparse(1, 1, (4*pi)^0.5, size(A,1), 1);
-        A = [0, c'; c, A];
-        b = zeros(size(A,1),1); % right-hand-side
+%   Ladaptive (default=false):      Adaptively sets Lmax based on
+%       threshold; This is solves at least twice the problems and thus
+%       slow but accurate around specified threshold
+%   threshold (default=1e-6):       Threshold
+%   verbose (default=false):        Verbose output
+
+    parser = inputParser;
+    addParameter(parser, 'Ladaptive', false);
+    addParameter(parser, 'threshold', 1e-6);
+    addParameter(parser, 'verbose', false);
+
+    parse(parser, varargin{:});
+    
+    Ladaptive = parser.Results.Ladaptive;
+    threshold = parser.Results.threshold;
+    verbose = parser.Results.verbose;
+
+    if ~Ladaptive
+        Lhmax = Lmax;
+        Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+
+        [L2h, Gh, Lyh, Wh] = build_matrix(Lhmax, 'verbose', verbose, ...
+                                                 'store', false);
+        % For Lagrange multiplier
+        c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
+        b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
-        v = A \ b;
-        x = v(2:end); % drop Lagrange multiplier (will be 0)
+    else
+        [L2, G, iLy, W] = build_matrix(Lmax, 'verbose', verbose);
+        % For Lagrange multiplier
+        c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
+        b = zeros(size(L2,1)+1,1); % right-hand-side
+        b(1) = 1;
+    
+        Lhmax = 16;
+        Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+    
+        L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
+        Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
     end
 
-    [L2, G, iLy, W] = build_matrix(Lmax, 'store', false);
-    psi_coeff = solve_lagrange( ...
-        -L2-srPe*(beta*G+0.5*(1-beta)*iLy)-erPe*beta*W);
+    % High accuracy solution
+    A = [0,       c(1:Nh)'; ...
+         c(1:Nh), L2h ...
+                + srPe*(beta*Gh+0.5*(1-beta)*Lyh) ...
+                + wrPe*Lyh ...
+                + erPe*beta*Wh];
+    psi_coeff = A \ b(1:Nh+1); % [0,-psi]
+
+    if Ladaptive
+        % Low accuracy reference
+        psi_coeff = A(1:Nh+1,1:Nh+1) \ b(1:Nh+1);
+        err = Inf;
+        % Refine until small
+        while err > threshold*norm(psi_coeff(3:5))
+            if Lhmax == Lmax
+                disp("> WARNING: Cannot achieve "+ ...
+                     "threshold with given Lmax!");
+                break
+            end
+            Lhmax = min(Lmax, Lhmax*2);
+            Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+            L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
+            Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+            % Set high -> low
+            psi_ref = psi_coeff;
+            % Recompute high accuracy solution
+            A = [0,       c(1:Nh)'; ...
+                 c(1:Nh), L2h ...
+                        + srPe*(beta*Gh+0.5*(1-beta)*Lyh) ...
+                        + wrPe*Lyh ...
+                        + erPe*beta*Wh];
+            psi_coeff = A \ b(1:Nh+1);
+            err = norm(psi_ref(3:5)-psi_coeff((3:5)));
+        end
+    end
+
+    psi_coeff = psi_coeff(2:end); % drop Lagrange multiplier
 
 end

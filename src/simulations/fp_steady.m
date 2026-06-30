@@ -1,7 +1,7 @@
-function result = fp_steady(sr, er, lv, fv, beta, varargin)
+function result = fp_steady(sr, er, wr, lv, fv, beta, varargin)
 % Solve steady Fokker-Planck equation for rod suspensions.
 %
-% Polydisperse if (lv, fv) form a grid (using trapezoiudal method).
+% Polydisperse if (lv, fv) form a grid (using trapezoidal method).
 % Monodisperse is solved if lv is a scalar.
 %
 % The diffusion rate for aspect ratio $r$ and length $l$ is given by:
@@ -19,6 +19,7 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
 % Input:
 %   sr:    Shear rate or list of shear rates
 %   er:    Extension rate or list of extension rates
+%   wr:    Rotation rate or list of rotation rates
 %   lv:    Rod length scalar (monodisperse) or vector (polydisperse)
 %   fv:    Polydispersity probability density function f(lv)
 %   beta:  Bretherton parameter (scalar or vector for each rod)
@@ -66,15 +67,20 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
     end
 
     assert(length(sr) == length(er) || isscalar(er) || isscalar(sr));
-    selength = max(length(sr), length(er));
+    assert(length(sr) == length(wr) || isscalar(wr) || isscalar(sr));
+    selength = max([length(sr), length(er), length(wr)]);
     
     result.sr = sr;
     result.er = er;
+    result.wr = wr;
     if isscalar(sr)
         result.sr = repmat(sr, 1, selength);
     end
     if isscalar(er)
         result.er = repmat(er, 1, selength);
+    end
+    if isscalar(wr)
+        result.wr = repmat(wr, 1, selength);
     end
 
     if verbose
@@ -95,8 +101,9 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
     result.lv = lv;
     result.fv = fv;
 
-    result.Sz = zeros(selength,1);
     result.Sy = zeros(selength,1);
+    result.Sz = zeros(selength,1);
+    result.Sx = zeros(selength,1);
     result.ExtChi = zeros(selength,1);
     result.ExtTheta = zeros(selength,1);
 
@@ -107,7 +114,8 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
         Lhmax = Lmax;
         Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
 
-        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax, 'verbose', verbose);
+        [L2h, Gh, Lyh, Wh] = build_matrix(Lmax, 'verbose', verbose, ...
+                                                'store', false);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side
@@ -119,10 +127,8 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
         b = zeros(size(L2,1)+1,1); % right-hand-side
         b(1) = 1;
 
-        Lhmax = 32;
+        Lhmax = 16;
         Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-        Llmax = 16;
-        Nl = 1+0.25*Llmax*Llmax+Llmax;
 
         L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
         Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
@@ -134,20 +140,16 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
 
         for j = 1:length(fv)
 
-            srPe = result.sr(i)/result.Dr(j);
-            erPe = result.er(i)/result.Dr(j);
-
             % High accuracy solution
             A = [0,       c(1:Nh)'; ...
-                 c(1:Nh), L2h ...
-                         + srPe*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
-                         + erPe*bv(j)*Wh];
+                 c(1:Nh), result.Dr(j)*L2h ...
+                        + result.sr(i)*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
+                        + result.wr(i)*Lyh ...
+                        + result.er(i)*bv(j)*Wh];
             psi_coeff = A \ b(1:Nh+1); % [0,-psi]
 
             if Ladaptive
-                % Low accuracy reference
-                psi_ref = A(1:Nl+1,1:Nl+1) \ b(1:Nl+1);
-                err = norm(psi_ref(3:5)-psi_coeff((3:5)));
+                err = inf;
                 % Refine until small
                 while err > threshold*norm(psi_coeff(3:5))
                     if Lhmax == Lmax
@@ -158,30 +160,23 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
                     Lhmax = min(Lmax, Lhmax*2);
                     LmaxInfo = max(Lhmax, LmaxInfo);
                     Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-                    Llmax = Lhmax*0.5;
-                    Nl = 1+0.25*Llmax*Llmax+Llmax;
                     L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
-                    Lyh = L2(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+                    Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
                     % Set high -> low
                     psi_ref = psi_coeff;
                     % Recompute high accuracy solution
                     A = [0,       c(1:Nh)'; ...
-                         c(1:Nh), L2h ...
-                                 + srPe*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
-                                 + erPe*bv(j)*Wh];
+                         c(1:Nh), result.Dr(j)*L2h ...
+                            + result.sr(i)*(bv(j)*Gh+0.5*(1-bv(j))*Lyh) ...
+                            + result.wr(i)*Lyh ...
+                            + result.er(i)*bv(j)*Wh];
                     psi_coeff = A \ b(1:Nh+1);
                     err = norm(psi_ref(3:5)-psi_coeff((3:5)));
                 end
                 % Check if too small, then decrease resolution for next
                 % step
                 if Lhmax > 32 && err < 1e-2*threshold*norm(psi_coeff(3:5))
-                    Lhmax = 0.5*Lhmax;
-                    Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-                    Llmax = Lhmax*0.25;
-                    Nl = 1+0.25*Llmax*Llmax+Llmax;
-                    % Set low -> high
-                    L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
-                    Lyh = L2(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+                    Lhmax = 0.25*Lhmax;
                 end
             end
 
@@ -198,9 +193,10 @@ function result = fp_steady(sr, er, lv, fv, beta, varargin)
         end
 
         % Quantities of interest
-        [Sy, Sz, ExtChi, ExtTheta] = order_parameters(meanQ);
-        result.Sz(i,:) = Sz;
+        [Sy, Sz, Sx, ExtChi, ExtTheta] = order_parameters(meanQ);
         result.Sy(i,:) = Sy;
+        result.Sz(i,:) = Sz;
+        result.Sx(i,:) = Sx;
         result.ExtChi(i,:) = ExtChi;
         result.ExtTheta(i,:) = ExtTheta;
 
