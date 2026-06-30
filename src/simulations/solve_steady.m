@@ -1,60 +1,62 @@
-function psi_coeff = solve_steady(Lmax, beta, srPe, wrPe, erPe, varargin)
+function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
 % Solve single steady Fokker-Planck equation.
 %
 % Input:
 %   Lmax:   Maximum L for spectral basis
 %   beta:   Bretherton parameter
-%   srPe:   Peclet number based on shear rate
-%   wrPe:   Peclet number based on rotation rate
-%   erPe:   Peclet number based on extension rate
+%   sxz:    Peclet number based on shear rate
+%   syz:   Peclet number based on rotation rate
 
 %   Ladaptive (default=false):      Adaptively sets Lmax based on
 %       threshold; This is solves at least twice the problems and thus
 %       slow but accurate around specified threshold
 %   threshold (default=1e-6):       Threshold
 %   verbose (default=false):        Verbose output
+%   alwaysread (default=false):     Always read matrix if available
 
     parser = inputParser;
     addParameter(parser, 'Ladaptive', false);
     addParameter(parser, 'threshold', 1e-6);
     addParameter(parser, 'verbose', false);
+    addParameter(parser, 'alwaysread', false);
 
     parse(parser, varargin{:});
     
     Ladaptive = parser.Results.Ladaptive;
     threshold = parser.Results.threshold;
     verbose = parser.Results.verbose;
+    alwaysread = parser.Results.alwaysread;
 
     if ~Ladaptive
         Lhmax = Lmax;
-        Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
+        Nh = 1+0.5*Lhmax*(Lhmax+1)+Lhmax;
 
-        [L2h, Gh, Lyh, Wh] = build_matrix(Lhmax, 'verbose', verbose, ...
-                                                 'store', false);
+        [L2h, Gxzh, Lyh, Gyzh, Lxh] = build_matrix(Lhmax, ...
+            'verbose', verbose, 'store', false, 'alwaysread', alwaysread);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
     else
-        [L2, G, iLy, W] = build_matrix(Lmax, 'verbose', verbose);
+        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, 'verbose', verbose);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side
         b(1) = 1;
-    
+
         Lhmax = 16;
-        Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-    
-        L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
-        Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+        Nh = 1+0.5*Lhmax*(Lhmax+1)+Lhmax;
+
+        L2h = L2(1:Nh,1:Nh);
+        Gxzh = Gxz(1:Nh,1:Nh); Lyh = iLy(1:Nh,1:Nh);
+        Gyzh = Gyz(1:Nh,1:Nh); Lxh = iLx(1:Nh,1:Nh);
     end
 
     % High accuracy solution
     A = [0,       c(1:Nh)'; ...
-         c(1:Nh), L2h ...
-                + srPe*(beta*Gh+0.5*(1-beta)*Lyh) ...
-                + wrPe*Lyh ...
-                + erPe*beta*Wh];
+         c(1:Nh), -L2h ...
+                - sxz*(beta*Gxzh+0.5*(1-beta)*Lyh) ...
+                - syz*(beta*Gyzh-0.5*(1-beta)*Lxh)];
     psi_coeff = A \ b(1:Nh+1); % [0,-psi]
 
     if Ladaptive
@@ -69,17 +71,17 @@ function psi_coeff = solve_steady(Lmax, beta, srPe, wrPe, erPe, varargin)
                 break
             end
             Lhmax = min(Lmax, Lhmax*2);
-            Nh = 1+0.25*Lhmax*Lhmax+Lhmax;
-            L2h = L2(1:Nh,1:Nh); Gh = G(1:Nh,1:Nh);
-            Lyh = iLy(1:Nh,1:Nh); Wh = W(1:Nh,1:Nh);
+            Nh = 1+0.5*Lhmax*(Lhmax+1)+Lhmax;
+            L2h = L2(1:Nh,1:Nh);
+            Gxzh = Gxz(1:Nh,1:Nh); Lyh = iLy(1:Nh,1:Nh);
+            Gyzh = Gyz(1:Nh,1:Nh); Lxh = iLx(1:Nh,1:Nh);
             % Set high -> low
             psi_ref = psi_coeff;
             % Recompute high accuracy solution
-            A = [0,       c(1:Nh)'; ...
-                 c(1:Nh), L2h ...
-                        + srPe*(beta*Gh+0.5*(1-beta)*Lyh) ...
-                        + wrPe*Lyh ...
-                        + erPe*beta*Wh];
+            A = [0,       c(1:Nh)';
+                 c(1:Nh), -L2h ...
+                         - sxz*(beta*Gxzh+0.5*(1-beta)*Lyh) ...
+                         - syz*(beta*Gyzh-0.5*(1-beta)*Lxh)];
             psi_coeff = A \ b(1:Nh+1);
             err = norm(psi_ref(3:5)-psi_coeff((3:5)));
         end
