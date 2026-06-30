@@ -20,50 +20,20 @@ ax.ColorOrderIndex = 1;
 res_mono = load(dataPath+"shear_mono_steady_4.809e-07_1.00.mat").result;
 res_poly = cell(1, 2);
 res_poly{1} = load(dataPath ...
-    +"shear_poly_Lognormal_steady_4.809e-07_1.00").result;
+    +"shear_poly_Lognormal_steady_4.809e-07_1.00.mat").result;
 res_poly{2} = load(dataPath ...
-    +"shear_poly_Normal_steady_4.809e-07_1.00").result;
+    +"shear_poly_Lognormal_steady_4.809e-07_1.00.mat").result;
 
-lmean = res_mono.lv;
-rp = ((1+res_mono.beta)./(1-res_mono.beta)).^0.5;
-Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
+lmean = 274.7e-9;  % Length distribution mean
+dmean = 3.2e-9;    % Mean diameter of rods
+rp   = lmean/dmean;           % (0: disk, 1: sphere, +infty: rod)
+Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*(220*1e-9)^3);
 
-%% Plot data
-helper(res_mono.sr/Dr_mean, res_mono.Sz, 'handle', h_order);
+helper((res_mono.sxz.^2+res_mono.syz.^2).^0.5/Dr_mean, res_mono.Sz*5e-2, 'handle', h_order);
 for i = 1:length(res_poly)
-    helper(res_poly{i}.sr/Dr_mean, res_poly{i}.Sz, 'handle', h_order);
+    helper((res_poly{i}.sxz.^2+res_poly{i}.syz.^2).^0.5/Dr_mean, res_poly{i}.Sz*5e-2, 'handle', h_order);
 end
 
-%% Reset colors
-ax = gca;
-ax.ColorOrderIndex = 1;
-
-%% Load data to plot
-res_mono = load(dataPath ...
-    +"extension_mono_steady_4.809e-07_1.00.mat").result;
-res_poly = cell(1, 2);
-res_poly{1} = load(dataPath ...
-    +"extension_poly_Lognormal_steady_4.809e-07_1.00").result;
-res_poly{2} = load(dataPath ...
-    +"extension_poly_Normal_steady_4.809e-07_1.00").result;
-
-lmean = res_mono.lv;
-rp = ((1+res_mono.beta)./(1-res_mono.beta)).^0.5;
-Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
-
-%% Plot data
-helper(2*res_mono.er/Dr_mean, res_mono.Sz, 'handle', h_order, ...
-    'LineStyle', "--");
-for i = 1:length(res_poly)
-    helper(2*res_poly{i}.er/Dr_mean, res_poly{i}.Sz, ...
-        'handle', h_order, 'LineStyle', "--");
-end
-
-legend("Shear", "Extension", ...
-    'Mono', 'Poly (Lognormal)', 'Poly (Normal)');
-legend('Location', 'best');
-
-hold off;
 disableDefaultInteractivity(gca);
 exportgraphics(gcf, outputPath+"S_vs_Pe.pdf");
 
@@ -87,7 +57,7 @@ function h = helper(Pe, S, varargin)
     end
     plot(Pe, S, LineWidth=2, LineStyle=parser.Results.LineStyle);
     xscale('log'); yscale('log');
-    xlabel("$\dot{\gamma} / \overline{D_r}, \quad 2 \dot{\varepsilon} / \overline{D_r}$",Interpreter="latex");
+    xlabel("$\dot{\gamma} / \overline{D_r}$",Interpreter="latex");
     ylabel("$S$",Interpreter="latex");
     title('Simulation Results');
     fig_style(15);

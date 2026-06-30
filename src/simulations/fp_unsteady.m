@@ -1,69 +1,75 @@
-function result = fp_unsteady(init, T, sr, er, varargin)
+function result = fp_unsteady(init, T, sxz, syz, varargin)
 % Solve transient Fokker-Planck equation for rod suspensions.
 %
 % Input:
 %   psi0:  Initial state struct from fp_init(...)
 %   T:     Final time (by convention: t0 = 0)
-%   sr:    Shear rate (constant or function of time)
-%   er:    Extension rate (constant or function of time)
+%   sxz:   xz-Shear rate (constant or function of time)
+%   syz:   xz-Shear rate (constant or function of time)
 %
 %   dt (default=T/100):             Time step of transient solution
 %   verbose (default=false):        Verbose output
-%   type ('xy' (default) or 'xz'):  Type of plane
+%   type ('xy' or 'xz' (default)):  Type of plane (rotating z->y)
 %
 % Output:
 %   result.t:         Time grid
-%   result.sr:        Transient shear rate
-%   result.sr0:       Input initial shear rate
-%   result.er:        Transient extension rate
-%   result.er0:       Input initial extension rate
+%   result.sxz:       Transient xz-shear rate
+%   result.sxz0:      Input initial xz-shear rate
+%   result.syz:       Transient yz-shear rate
+%   result.syz0:      Input initial yz-shear rate
 %   result.Dr:        Input diffusion rates for all rods
 %   result.beta:      Input Bretherton parameters for all rods
 %   result.lv:        Input rod lengths
 %   result.fv:        Input polydisperisty probability density function
 %
-%   result.Sz:        Order parameter for z
 %   result.Sy:        Order parameter for y
+%   result.Sz:        Order parameter for z
+%   result.Sx:        Order parameter for x
 %   result.ExtChi:    Extinction angle for chi
 %   result.ExtTheta:  Extinction angle for theta
 
-    run('src/constants.m');
+    constants_path = fullfile(fileparts(mfilename('fullpath')), '../..', ...
+        'src', 'constants.m');
+    run(constants_path);
 
     parser = inputParser;
     addParameter(parser, 'dt', T/100);
-    addParameter(parser, 'type', 'xy');
+    addParameter(parser, 'type', 'xz');
     addParameter(parser, 'verbose', false);
+    addParameter(parser, 'store', false);
 
     parse(parser, varargin{:});
     
     dt = parser.Results.dt;
     type = parser.Results.type;
     verbose = parser.Results.verbose;
+    store = parser.Results.store;
 
     if isnumeric(T) && isscalar(T)
         result.t = 0:dt:T;
     else
         result.t = T;
     end
-    if isnumeric(sr) && isscalar(sr)
-        result.sr = sr*ones(size(result.t));
+    if isnumeric(sxz) && isscalar(sxz)
+        result.sxz = sxz*ones(size(result.t));
     else
-        result.sr = sr(result.t);
+        result.sxz = sxz(result.t);
     end
-    if isnumeric(er) && isscalar(er)
-        result.er = er*ones(size(result.t));
+    if isnumeric(syz) && isscalar(syz)
+        result.syz = syz*ones(size(result.t));
     else
-        result.er = er(result.t);
+        result.syz = syz(result.t);
     end
-    result.sr0 = init.sr0;
-    result.er0 = init.er0;
+    result.sxz0 = init.sxz0;
+    result.syz0 = init.syz0;
     result.Dr = init.Dr;
     result.beta = init.beta;
     result.lv = init.lv;
     result.fv = init.fv;
 
-    result.Sz = zeros(length(result.t),1);
     result.Sy = zeros(length(result.t),1);
+    result.Sz = zeros(length(result.t),1);
+    result.Sx = zeros(length(result.t),1);
     result.ExtChi = zeros(length(result.t),1);
     result.ExtTheta = zeros(length(result.t),1);
 
@@ -72,13 +78,15 @@ function result = fp_unsteady(init, T, sr, er, varargin)
     end
 
     % Pre-compute matrices
-    [L2, G, iLy, W] = build_matrix(init.Lmax, 'verbose', verbose);
+    [L2, Gxz, iLy, Gyz, iLx] = build_matrix(init.Lmax, ...
+        'verbose', verbose, 'store', store);
 
     Q = zeros(length(result.fv), length(result.t), 6);
     for j = 1:length(result.fv)
         N = length(init.psi0{j});
-        [f, Fjac] = transient(sr, er, result.beta(j), result.Dr(j), ...
-            L2(1:N,1:N), G(1:N,1:N), iLy(1:N,1:N), W(1:N,1:N));
+        [f, Fjac] = transient(sxz, syz, result.beta(j), result.Dr(j), ...
+            L2(1:N,1:N), Gxz(1:N,1:N), iLy(1:N,1:N), ...
+                         Gyz(1:N,1:N), iLx(1:N,1:N));
 
         opts = odeset('Jacobian', Fjac);
         [~, psiTj] = ode15s(f, result.t, init.psi0{j}, opts);
@@ -94,36 +102,40 @@ function result = fp_unsteady(init, T, sr, er, varargin)
     end
 
     % Quantities of interest
-    [Sy, Sz, ExtChi, ExtTheta] = order_parameters(meanQ);
-    result.Sz = Sz;
+    [Sy, Sz, Sx, ExtChi, ExtTheta] = order_parameters(meanQ);
     result.Sy = Sy;
+    result.Sz = Sz;
+    result.Sx = Sx;
+    
     result.ExtChi = ExtChi;
     result.ExtTheta = ExtTheta;
 
 end
 
-function [f, Fjac] = transient(gamma, epsilon, beta, Dr, L2, G, iLy, W)
+function [f, Fjac] = transient(gxz, gyz, beta, Dr, L2, Gxz, iLy, Gyz, iLx)
 % Helper function
 
     L = -Dr*L2;
-    S = beta*G+0.5*(1-beta)*iLy;
-    W = beta*W;
+    Sxz = beta*Gxz+0.5*(1-beta)*iLy;
+    Syz = beta*Gyz-0.5*(1-beta)*iLx;
 
-    if isnumeric(gamma) && isscalar(gamma)
-        if isnumeric(epsilon) && isscalar(epsilon)
-            f = @(t,y) L*y-gamma*(S*y)-epsilon*(W*y);
-            Fjac = @(t,y) L-gamma*S-epsilon*W;
-        else
-            f = @(t,y) L*y-gamma*(S*y)-epsilon(t)*(W*y);
-            Fjac = @(t,y) L-gamma*S-epsilon(t)*W;
-        end
+    f = @(t,y) L*y;
+    Fjac = @(t,y) L;
+
+    if isnumeric(gxz) && isscalar(gxz)
+        f = @(t,y) f(t,y) - gxz*(Sxz*y);
+        Fjac = @(t,y) Fjac(t,y) - gxz*Sxz;
     else
-        if isnumeric(epsilon) && isscalar(epsilon)
-            f = @(t,y) L*y-gamma(t)*(S*y)-epsilon*(W*y);
-            Fjac = @(t,y) L-gamma(t)*S-epsilon*W;
-        else
-            f = @(t,y) L*y-gamma(t)*(S*y)-epsilon(t)*(W*y);
-            Fjac = @(t,y) L-gamma(t)*S-epsilon(t)*W;
-        end
+        f = @(t,y) f(t,y) - gxz(t)*(Sxz*y);
+        Fjac = @(t,y) Fjac(t,y) - gxz(t)*Sxz;
     end
+
+    if isnumeric(gyz) && isscalar(gyz)
+        f = @(t,y) f(t,y) - gyz*(Syz*y);
+        Fjac = @(t,y) Fjac(t,y) - gyz*Syz;
+    else
+        f = @(t,y) f(t,y) - gyz(t)*(Syz*y);
+        Fjac = @(t,y) Fjac(t,y) - gyz(t)*Syz;
+    end
+
 end

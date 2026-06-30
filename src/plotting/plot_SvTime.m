@@ -27,42 +27,16 @@ res_poly{2} = load(dataPath ...
 lmean = res_mono.lv;
 rp = ((1+res_mono.beta)./(1-res_mono.beta)).^0.5;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
-srPe = res_mono.sr0/res_mono.Dr;
+srPe = res_mono.sxz0/res_mono.Dr;
 
 %% Plot data
-helper(res_mono.t*Dr_mean, res_mono.Sy/res_mono.Sy(1), 'handle', h_order);
+helper(res_mono.t*Dr_mean, res_mono.Sz/res_mono.Sz(1), 'handle', h_order);
 for i = 1:length(res_poly)
-    helper(res_poly{i}.t*Dr_mean, res_poly{i}.Sy/res_poly{i}.Sy(1), ...
+    helper(res_poly{i}.t*Dr_mean, res_poly{i}.Sz/res_poly{i}.Sz(1), ...
         'handle', h_order);
 end
 
-%% Reset colors
-ax = gca;
-ax.ColorOrderIndex = 1;
-
-%% Load data to plot
-res_mono = load(dataPath ...
-    +"extension_mono_unsteady_4.809e-07_1.00.mat").result;
-res_poly = cell(1, 2);
-res_poly{1} = load(dataPath ...
-    +"extension_poly_Lognormal_unsteady_4.809e-07_1.00").result;
-res_poly{2} = load(dataPath ...
-    +"extension_poly_Normal_unsteady_4.809e-07_1.00").result;
-
-lmean = res_mono.lv;
-rp = ((1+res_mono.beta)./(1-res_mono.beta)).^0.5;
-Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
-erPe = 2*res_mono.er0/res_mono.Dr;
-
-%% Plot data
-helper(res_mono.t*Dr_mean, res_mono.Sy/res_mono.Sy(1), ...
-    'handle', h_order, 'LineStyle', "--");
-for i = 1:length(res_poly)
-    helper(res_poly{i}.t*Dr_mean, res_poly{i}.Sy/res_poly{i}.Sy(1), ...
-        'handle', h_order, 'LineStyle', "--");
-end
-
-legend("Shear (Pe="+srPe+")", "Extension (Pe="+srPe+")", ...
+legend("Shear (Pe="+srPe+")", ...
     'Mono', 'Poly (Lognormal)', 'Poly (Normal)');
 legend('Location', 'best');
 ylimold = ylim;
