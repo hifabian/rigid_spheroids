@@ -11,10 +11,7 @@ Pe = [1e0, 1e1, 1e2, 1e0, 1e1, 1e2];
 filenames = {
     "shear_mono_realspace_1_1.00.mat",
     "shear_mono_realspace_10_1.00.mat",
-    "shear_mono_realspace_100_1.00.mat",
-    "extension_mono_realspace_1_1.00.mat",
-    "extension_mono_realspace_10_1.00.mat",
-    "extension_mono_realspace_100_1.00.mat"
+    "shear_mono_realspace_100_1.00.mat"
     };
 for i = 1:length(filenames)
     result = load(dataPath+filenames{i}).result;
