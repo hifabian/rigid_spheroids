@@ -67,7 +67,8 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
                 gxz, gyz, tc.Dr);
             psi_unsteady = psi(end,:)';
 
-            psi_steady = solve_steady(tc.Lmax, tc.beta, gxz, gyz);
+            psi_steady = solve_steady(tc.Lmax, tc.beta, gxz, gyz, ...
+                'store', false);
             tc.verifyEqual(psi_unsteady, psi_steady, ...
                 'AbsTol', 1e-12, 'RelTol', 1e-8);
         end

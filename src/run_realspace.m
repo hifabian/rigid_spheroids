@@ -31,15 +31,12 @@ chiList   = (0:Nchi-1) * dchi;
 thetaList = (0:Ntheta-1) * dtheta + dtheta/2;
 
 [THETA, CHI] = meshgrid(thetaList, chiList);
-% Rotate to xy-shear
-RTHETA = acos(sin(CHI).*sin(THETA));
-RCHI = atan2(cos(THETA),sin(THETA).*cos(CHI));
 
 %% Compute
 for i = 1:length(syz) % simple shear
     init_mono = fp_init(sxz, syz(i), lmean, 1.0, beta, ...
         'verbose', true, 'Ladaptive', true);
-    result.psiReal = to_real_space(init_mono.psi0{1}, RTHETA, RCHI, ...
+    result.psiReal = to_real_space(init_mono.psi0{1}, THETA, CHI, ...
         Lrecon, threshold);
     result.theta = THETA;
     result.chi = CHI;

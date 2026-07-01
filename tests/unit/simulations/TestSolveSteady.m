@@ -2,7 +2,7 @@ classdef TestSolveSteady < matlab.unittest.TestCase
     methods (Test)
         function testZeroFlowIsIsotropic(tc)
             % No flow -> isotropic distribution -> Sy=Sz=Sx=0
-            psi = solve_steady(4, 0.5, 0, 0);
+            psi = solve_steady(4, 0.5, 0, 0, 'store', false);
             Q = order_matrix(psi, 'type', 'xz');
             [Sy, Sz, Sx] = order_parameters(Q);
             tc.verifyEqual(Sy, 0, 'AbsTol', 1e-10);
@@ -13,15 +13,15 @@ classdef TestSolveSteady < matlab.unittest.TestCase
         function testNormalization(tc)
             % psi integrates to 1: b_00 = 1/sqrt(4*pi)
             Lmax = 24;
-            psi = solve_steady(Lmax, 0.5, 1, 1);
+            psi = solve_steady(Lmax, 0.5, 1, 1, 'store', false);
             tc.verifyEqual(psi(idx(0,0,Lmax)), 1/sqrt(4*pi), 'AbsTol', 1e-10);
         end
 
         function testXZvsYZOrderParamter(tc)
             % solve_steady(sxz, 0) and solve_steady(0, syz) should give
             % same order parameter magnitude by reflection symmetry
-            psi_xz = solve_steady(24, 0.5, 1.0, 0.0);
-            psi_yz = solve_steady(24, 0.5, 0.0, 1.0);
+            psi_xz = solve_steady(24, 0.5, 1.0, 0.0, 'store', false);
+            psi_yz = solve_steady(24, 0.5, 0.0, 1.0, 'store', false);
             Q_xz = order_matrix(psi_xz, 'type', 'xz');
             Q_yz = order_matrix(psi_yz, 'type', 'xz');
             [Sy_xz, Sz_xz, Sx_xz] = order_parameters(Q_xz);
@@ -34,8 +34,8 @@ classdef TestSolveSteady < matlab.unittest.TestCase
         function testXZvsYZRelfection(tc)
             % (y=-x)-reflection between xz and yz shear 
             Lmax = 24;
-            psi_xz = solve_steady(Lmax, 0.5, 10.0, 0.0);
-            psi_yz = solve_steady(Lmax, 0.5, 0.0, 10.0);
+            psi_xz = solve_steady(Lmax, 0.5, 10.0, 0.0, 'store', false);
+            psi_yz = solve_steady(Lmax, 0.5, 0.0, 10.0, 'store', false);
             N = size(psi_xz, 1);
             T = speye(N);
             for l = 0:2:Lmax
@@ -58,8 +58,9 @@ classdef TestSolveSteady < matlab.unittest.TestCase
             sxz = 100.0; syz = 20.0;
             theta = atan2(syz,sxz);
             Lmax = 24;
-            psi_xz = solve_steady(Lmax, 0.5, (sxz^2+syz^2)^0.5, 0.0);
-            psi_mz = solve_steady(Lmax, 0.5, sxz, syz);
+            psi_xz = solve_steady(Lmax, 0.5, (sxz^2+syz^2)^0.5, 0.0, ...
+                'store', false);
+            psi_mz = solve_steady(Lmax, 0.5, sxz, syz, 'store', false);
             N = size(psi_xz, 1);
             T = speye(N);
             for l = 0:2:Lmax
