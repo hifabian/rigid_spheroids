@@ -27,7 +27,7 @@ threshold = 1e-8;
 
 dchi      = 2*pi / Nchi;
 dtheta    = 1*pi / Ntheta;
-chiList   = (0:Nchi) * dchi - pi;
+chiList   = (0:Nchi) * dchi;
 thetaList = (0:Ntheta) * dtheta;
 
 [THETA, CHI] = meshgrid(thetaList, chiList);

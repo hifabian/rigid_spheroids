@@ -5,7 +5,7 @@ function psixy = to_real_space(psi_coeff, THETA, CHI, Lrecon, threshold)
     function blmxy = basis_sp(l, m, THETA, CHI)
     % Helper function for real spherical harmonics.
         % could be improved, since all m values are almost evaluated
-        blmxy = harmonicY(l,m,THETA,CHI,'type',"real");
+        blmxy = harmonicY(l,m,THETA,CHI,'type',"real",'phase',false);
         if m ~= 0
             blmxy = 2.0^0.5*blmxy;
         end
