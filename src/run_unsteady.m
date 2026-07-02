@@ -29,13 +29,14 @@ lognormal = makedist('Lognormal', ...
 %% Simple shear information
 Pe = 10.0;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
-sxz = Dr_mean*Pe;
-syz = 0;
+Du0 = repmat([0,0,0;0,0,0;0,0,0], 1, 1, length(Pe));
+Du0(3,1,:) = Dr_mean*Pe;
+
 
 % Monodisperse
-init_mono = fp_init(sxz, syz, lmean, 1.0, beta, 'verbose', true, ...
-    'Ladaptive', true, 'Lmax', 256);
-result = fp_unsteady(init_mono, 10.0/Dr_mean, 0.0, 0.0);
+init_mono = fp_init(Du0, lmean, 1.0, Dr_mean, beta, ...
+    'verbose', true, 'Ladaptive', true, 'Lmax', 256);
+result = fp_unsteady(init_mono, 10.0/Dr_mean, [0,0,0;0,0,0;0,0,0]);
 save(dataPath+"shear_mono_unsteady_"+lmean+"_"+num2str(beta, '%.2f') ...
     +".mat", 'result');
 
@@ -44,9 +45,12 @@ distributions = {lognormal, normal};
 for i = 1:length(distributions)
     fv = pdf(distributions{i}, lv);
     fv = fv / trapz(lv, fv);  % Discretized distribution instead
-    init_poly = fp_init(sxz, syz, lv, fv, beta, 'verbose', true, ...
-        'Ladaptive', true, 'Lmax', 256);
-    result = fp_unsteady(init_poly, 10.0/Dr_mean, 0.0, 0.0);
+    rp = ((1+beta)./(1-beta)).^0.5;  % Aspect ratios
+    Dr = 3*kB*Temp*log(rp)./(pi*eta*lv.^3);  % Diffusion rates
+
+    init_poly = fp_init(Du0, lv, fv, Dr, beta, ...
+        'verbose', true, 'Ladaptive', true, 'Lmax', 256);
+    result = fp_unsteady(init_poly, 10.0/Dr_mean, [0,0,0;0,0,0;0,0,0]);
     save(dataPath+"shear_poly_"+distributions{i}.DistributionName ...
         +"_unsteady_"+lmean+"_"+num2str(beta, '%.2f')+".mat", 'result');
 end

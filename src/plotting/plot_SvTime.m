@@ -24,14 +24,16 @@ res_poly{2} = load(dataPath ...
     +"shear_poly_Normal_unsteady_4.809e-07_1.00").result;
 
 lmean = res_mono.lv;
-rp = ((1+res_mono.beta)./(1-res_mono.beta)).^0.5;
+rp = ((1+res_mono.bv)./(1-res_mono.bv)).^0.5;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
-srPe = res_mono.sxz0/res_mono.Dr;
+srPe = res_mono.Du0(3,1)/res_mono.Dr;
 
 %% Plot data
-helper(res_mono.t*Dr_mean, res_mono.Sz/res_mono.Sz(1), 'handle', h_order);
+[~, ~, ~, S] = order_parameters(res_mono.Q);
+helper(res_mono.t*Dr_mean, S/S(1), 'handle', h_order);
 for i = 1:length(res_poly)
-    helper(res_poly{i}.t*Dr_mean, res_poly{i}.Sz/res_poly{i}.Sz(1), ...
+    [~, ~, ~, S] = order_parameters(res_poly{i}.Q);
+    helper(res_poly{i}.t*Dr_mean, S/S(1), ...
         'handle', h_order);
 end
 

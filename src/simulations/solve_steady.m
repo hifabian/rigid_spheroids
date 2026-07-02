@@ -1,24 +1,22 @@
-function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
+function psi_coeff = solve_steady(Lmax, beta, Du, varargin)
 % Solve single steady Fokker-Planck equation.
 %
 % Input:
 %   Lmax:   Maximum L for spectral basis
 %   beta:   Bretherton parameter
-%   sxz:    Peclet number based on shear rate
-%   syz:   Peclet number based on rotation rate
-
+%   Du:     Velocity gradient (non-dimensionalized with D_r)
+%
 %   Ladaptive (default=false):      Adaptively sets Lmax based on
 %       threshold; This is solves at least twice the problems and thus
 %       slow but accurate around specified threshold
 %   threshold (default=1e-6):       Threshold
 %   verbose (default=false):        Verbose output
-%   alwaysread (default=false):     Always read matrix if available
+%   store (default=true):           Store matrices
 
     parser = inputParser;
     addParameter(parser, 'Ladaptive', false);
     addParameter(parser, 'threshold', 1e-6);
     addParameter(parser, 'verbose', false);
-    addParameter(parser, 'alwaysread', false);
     addParameter(parser, 'store', true);
 
     parse(parser, varargin{:});
@@ -26,7 +24,6 @@ function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
     Ladaptive = parser.Results.Ladaptive;
     threshold = parser.Results.threshold;
     verbose = parser.Results.verbose;
-    alwaysread = parser.Results.alwaysread;
     store = parser.Results.store;
 
     if ~Ladaptive
@@ -34,15 +31,14 @@ function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
         Nh = 1+0.5*Lhmax*(Lhmax+1)+Lhmax;
 
         [L2h, Gxzh, Lyh, Gyzh, Lxh] = build_matrix(Lhmax, ...
-            'verbose', verbose, 'store', false, 'alwaysread', alwaysread, ...
-            'store', store);
+            'verbose', verbose, 'store', store);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2h,1), 1);
         b = zeros(size(L2h,1)+1,1); % right-hand-side
         b(1) = 1;
     else
-        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, 'verbose', verbose, ...
-            'store', store);
+        [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, ...
+            'verbose', verbose, 'store', store);
         % For Lagrange multiplier
         c = sparse(1,1,(4*pi)^0.5, size(L2,1), 1);
         b = zeros(size(L2,1)+1,1); % right-hand-side
@@ -56,11 +52,9 @@ function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
         Gyzh = Gyz(1:Nh,1:Nh); Lxh = iLx(1:Nh,1:Nh);
     end
 
+
     % High accuracy solution
-    A = [0,       c(1:Nh)'; ...
-         c(1:Nh), -L2h ...
-                - sxz*(beta*Gxzh+0.5*(1-beta)*Lyh) ...
-                - syz*(beta*Gyzh-0.5*(1-beta)*Lxh)];
+    A = assemble_steady(Du, 1.0, beta, L2h, Gxzh, Lyh, Gyzh, Lxh);
     psi_coeff = A \ b(1:Nh+1); % [0,-psi]
 
     if Ladaptive
@@ -82,10 +76,7 @@ function psi_coeff = solve_steady(Lmax, beta, sxz, syz, varargin)
             % Set high -> low
             psi_ref = psi_coeff;
             % Recompute high accuracy solution
-            A = [0,       c(1:Nh)';
-                 c(1:Nh), -L2h ...
-                         - sxz*(beta*Gxzh+0.5*(1-beta)*Lyh) ...
-                         - syz*(beta*Gyzh-0.5*(1-beta)*Lxh)];
+            A = assemble_steady(Du, 1.0, beta, L2h, Gxzh, Lyh, Gyzh, Lxh);
             psi_coeff = A \ b(1:Nh+1);
             err = norm(psi_ref(3:5)-psi_coeff((3:5)));
         end

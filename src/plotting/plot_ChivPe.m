@@ -14,18 +14,17 @@ res_poly{1} = load(dataPath ...
 res_poly{2} = load(dataPath ...
     +"shear_poly_Lognormal_steady_4.809e-07_1.00.mat").result;
 
-lmean = 274.7e-9;  % Length distribution mean
-dmean = 3.2e-9;    % Mean diameter of rods
-rp   = lmean/dmean;           % (0: disk, 1: sphere, +infty: rod)
-Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*(220*1e-9)^3);
+Dr_mean = res_mono.Dr;
 
 %% Plot data
-h_angle = helper((res_mono.sxz.^2+res_mono.syz.^2).^0.5/Dr_mean, ...
-    pi-res_mono.ExtTheta);
+[~, ~, ~, ~, ~, ExtChi, ExtTheta] = order_parameters(res_mono.Q);
+sr = ((res_mono.Du(1,3,:).^2+res_mono.Du(2,3,:).^2).^0.5/Dr_mean);
+h_angle = helper(squeeze(sr), ExtTheta);
 hold on;
 for i = 1:length(res_poly)
-    helper((res_poly{i}.sxz.^2+res_poly{i}.syz.^2).^0.5/Dr_mean, ...
-        pi-res_poly{i}.ExtTheta, 'handle', h_angle);
+    [~, ~, ~, ~, ~, ExtChi, ExtTheta] = order_parameters(res_poly{i}.Q);
+    sr = ((res_poly{i}.Du(1,3,:).^2+res_poly{i}.Du(2,3,:).^2).^0.5/Dr_mean);
+    helper(squeeze(sr), ExtTheta, 'handle', h_angle);
 end
 legend('Mono', 'Poly (Lognormal)', 'Poly (Normal)');
 legend('Location', 'best');

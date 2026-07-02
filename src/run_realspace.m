@@ -27,14 +27,15 @@ threshold = 1e-8;
 
 dchi      = 2*pi / Nchi;
 dtheta    = 1*pi / Ntheta;
-chiList   = (0:Nchi-1) * dchi;
-thetaList = (0:Ntheta-1) * dtheta + dtheta/2;
+chiList   = (0:Nchi) * dchi - pi;
+thetaList = (0:Ntheta) * dtheta;
 
 [THETA, CHI] = meshgrid(thetaList, chiList);
 
 %% Compute
 for i = 1:length(syz) % simple shear
-    init_mono = fp_init(sxz, syz(i), lmean, 1.0, beta, ...
+    Du = [0,0,0;0,0,syz(i);0,0,0];
+    init_mono = fp_init(Du, lmean, 1.0, Dr_mean, beta, ...
         'verbose', true, 'Ladaptive', true);
     result.psiReal = to_real_space(init_mono.psi0{1}, THETA, CHI, ...
         Lrecon, threshold);

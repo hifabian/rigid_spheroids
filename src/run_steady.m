@@ -6,6 +6,10 @@ addpath(genpath('src/'));
 run('src/config.m');
 run('src/constants.m');
 
+% The diffusion rate for aspect ratio $r$ and length $l$ is given by:
+% \[ D_r(l) = 3 k_B T \log(r) / (\pi \eta l^3). \]
+
+
 %% Setup
 lmean = 480.9e-9;    % Length distribution mean
 dmean = 5.6e-9;      % Mean diameter of rods
@@ -26,14 +30,15 @@ lognormal = makedist('Lognormal', ...
     'mu', log(lmean^2/sqrt(lsigma^2+lmean^2)), ...
     'sigma', sqrt(log(lsigma^2/lmean^2+1)));
 
+
 %% Simple shear information
-Pe = logspace(-2,4,50);
+Pe = logspace(-3,4,50);
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
-sxz = Dr_mean*Pe;
-syz = 0;
+Du = repmat([0,0,0;0,0,0;0,0,0], 1, 1, length(Pe));
+Du(1,3,:) = Dr_mean*Pe;
 
 % Monodisperse
-result = fp_steady(sxz, syz, lmean, 1.0, beta, 'verbose', true, ...
+result = fp_steady(Du, lmean, 1.0, Dr_mean, beta, 'verbose', true, ...
     'Ladaptive', true, 'Lmax', 1024, 'threshold', 1e-4);
 save(dataPath+"shear_mono_steady_"+lmean+"_"+num2str(beta, '%.2f') ...
     +".mat", 'result');
@@ -43,7 +48,10 @@ distributions = {lognormal, normal};
 for i = 1:length(distributions)
     fv = pdf(distributions{i}, lv);
     fv = fv / trapz(lv, fv);  % Discretized distribution instead
-    result = fp_steady(sxz, syz, lv, fv, beta, 'verbose', true, ...
+    rp = ((1+beta)./(1-beta)).^0.5;  % Aspect ratios
+    Dr = 3*kB*Temp*log(rp)./(pi*eta*lv.^3);  % Diffusion rates
+
+    result = fp_steady(Du, lv, fv, Dr, beta, 'verbose', true, ...
         'Ladaptive', true, 'Lmax', 1024, 'threshold', 1e-4);
     save(dataPath+"shear_poly_"+distributions{i}.DistributionName ...
         +"_steady_"+lmean+"_"+num2str(beta, '%.2f')+".mat", 'result');
