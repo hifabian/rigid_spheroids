@@ -7,9 +7,9 @@ This project provides a numerical simulation tool based on the (Galerkin) spectr
 Specifically, this simulation tool solves for the orientation distribution of rigid spheroids in a dilute solution, currently assuming the rotational diffusion coefficient for rods.
 The system may either be a monodisperse or polydisperse system.
 The order parameter and extinction angle are directly evaluated.
-Currently, all types of planar flows are supported, which include:
-- Simple shear in `xz`,
-- simple shear in `yz`, and,
+Currently, flows involving two shear planes are supported, which include:
+- Simple shear in `xz` or `zx`,
+- simple shear in `yz` or `zy`, and,
 - any combination of these.
 
 The flow may be steady or unsteady, i.e. transient, both in terms of the flow field and the spheroid's motion.
