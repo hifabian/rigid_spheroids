@@ -10,9 +10,9 @@ run('src/constants.m');
 res_mono = load(dataPath+"shear_mono_steady_4.809e-07_1.00.mat").result;
 res_poly = cell(1, 2);
 res_poly{1} = load(dataPath ...
-    +"shear_poly_Normal_steady_4.809e-07_1.00.mat").result;
-res_poly{2} = load(dataPath ...
     +"shear_poly_Lognormal_steady_4.809e-07_1.00.mat").result;
+res_poly{2} = load(dataPath ...
+    +"shear_poly_Normal_steady_4.809e-07_1.00.mat").result;
 
 Dr_mean = res_mono.Dr;
 

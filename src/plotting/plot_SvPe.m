@@ -9,8 +9,6 @@ run('src/constants.m');
 %% Dummy plot for labels
 h_order = figure;
 hold on;
-hsr = plot(nan, nan, 'k-', LineWidth=2);
-hex = plot(nan, nan, 'k--', LineWidth=2);
 
 %% Reset colors
 ax = gca;
@@ -20,9 +18,9 @@ ax.ColorOrderIndex = 1;
 res_mono = load(dataPath+"shear_mono_steady_4.809e-07_1.00.mat").result;
 res_poly = cell(1, 2);
 res_poly{1} = load(dataPath ...
-    +"shear_poly_Normal_steady_4.809e-07_1.00.mat").result;
-res_poly{2} = load(dataPath ...
     +"shear_poly_Lognormal_steady_4.809e-07_1.00.mat").result;
+res_poly{2} = load(dataPath ...
+    +"shear_poly_Normal_steady_4.809e-07_1.00.mat").result;
 
 Dr_mean = res_mono.Dr;
 
@@ -35,6 +33,8 @@ for i = 1:length(res_poly)
     helper(squeeze(sr), S, 'handle', h_order);
 end
 
+legend('Mono', 'Poly (Lognormal)', 'Poly (Normal)');
+legend('Location', 'best');
 disableDefaultInteractivity(gca);
 exportgraphics(gcf, outputPath+"S_vs_Pe.pdf");
 
