@@ -22,7 +22,7 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             t = [0, 1];
             Du = [0,0,0;0,0,0;0,0,0];
 
-            [~, psi] = solve_unsteady(t,tc.psi0,tc.Lmax,tc.beta,Du,tc.Dr);
+            [~, psi] = solve_unsteady(t,tc.psi0,tc.Dr,tc.beta,Du);
 
             tc.verifyEqual(psi(1,:)', tc.psi0, 'AbsTol', 1e-12);
         end
@@ -33,7 +33,7 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             t = linspace(0, 2, 20);
             Du = [0,0,0;0,0,0;0,0,0];
 
-            [~, psi] = solve_unsteady(t,tc.psi0,tc.Lmax,tc.beta,Du,tc.Dr);
+            [~, psi] = solve_unsteady(t,tc.psi0,tc.Dr,tc.beta,Du);
             b00 = psi(:, idx(0,0,tc.Lmax));
 
             tc.verifyEqual(b00, (1/sqrt(4*pi))*ones(size(b00)), ...
@@ -46,7 +46,7 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             t = linspace(0, 20/tc.Dr, 100);
             Du = [0,0,0;0,0,0;0,0,0];
 
-            [~, psi] = solve_unsteady(t,tc.psi0,tc.Lmax,tc.beta,Du,tc.Dr);
+            [~, psi] = solve_unsteady(t,tc.psi0,tc.Dr,tc.beta,Du);
             psi_end = psi(end,:)';
 
             psi_iso = zeros(size(psi_end));
@@ -61,7 +61,7 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             t = linspace(0, 2/tc.Dr, 20);
             Du = [0,0,0;0,0,0;0,0,0];
             
-            [~, psi] = solve_unsteady(t,tc.psi0,tc.Lmax,tc.beta,Du,tc.Dr);
+            [~, psi] = solve_unsteady(t,tc.psi0,tc.Dr,tc.beta,Du);
             b20 = psi(:, idx(2,0,tc.Lmax));
             b22 = psi(:, idx(2,2,tc.Lmax));
 
@@ -78,7 +78,7 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             t = linspace(0, 50/tc.Dr, 200);
             Du = [0,0,2.0;0,0,8.0;4.0,6.0,0];
 
-            [~, psi] = solve_unsteady(t,tc.psi0,tc.Lmax,tc.beta,Du,tc.Dr);
+            [~, psi] = solve_unsteady(t,tc.psi0,tc.Dr,tc.beta,Du);
             psi_unsteady = psi(end,:)';
             psi_steady = solve_steady(tc.Lmax, tc.beta, Du, ...
                 'store', false);
@@ -95,8 +95,8 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             Dus = [0,0,0;0,0,0;gxz,gyz,0];
             Dut = @(t) [0,0,0;0,0,0;gxz,gyz,0];
 
-            [~, psis] = solve_unsteady(t,tc.psi0,tc.Lmax,tc.beta,Dus,tc.Dr);
-            [~, psit] = solve_unsteady(t,tc.psi0,tc.Lmax,tc.beta,Dut,tc.Dr);
+            [~, psis] = solve_unsteady(t,tc.psi0,tc.Dr,tc.beta,Dus);
+            [~, psit] = solve_unsteady(t,tc.psi0,tc.Dr,tc.beta,Dut);
 
             tc.verifyEqual(psis, psit, 'AbsTol', 1e-12, 'RelTol', 1e-8);
         end
@@ -112,10 +112,10 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             Du_xz = [0,0,0;0,0,0;20.0,0,0];
             Du_yz = [0,0,0;0,0,0;0,20.0,0];
 
-            [~, psi_xz] = solve_unsteady(t, psi0_iso, tc.Lmax, tc.beta, ...
-                Du_xz, tc.Dr);
-            [~, psi_yz] = solve_unsteady(t, psi0_iso, tc.Lmax, tc.beta, ...
-                Du_yz, tc.Dr);
+            [~, psi_xz] = solve_unsteady(t, psi0_iso, tc.Dr, tc.beta, ...
+                Du_xz);
+            [~, psi_yz] = solve_unsteady(t, psi0_iso, tc.Dr, tc.beta, ...
+                Du_yz);
 
             Q_xz = order_matrix(psi_xz, 'type', 'xz');
             Q_yz = order_matrix(psi_yz, 'type', 'xz');
@@ -138,10 +138,10 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             Du_xz = [0,0,0;0,0,0;20.0,0,0];
             Du_yz = [0,0,0;0,0,0;0,20.0,0];
 
-            [~, psi_xz] = solve_unsteady(t, psi0_iso, tc.Lmax, tc.beta, ...
-                Du_xz, tc.Dr);
-            [~, psi_yz] = solve_unsteady(t, psi0_iso, tc.Lmax, tc.beta, ...
-                Du_yz, tc.Dr);
+            [~, psi_xz] = solve_unsteady(t, psi0_iso, tc.Dr, tc.beta, ...
+                Du_xz);
+            [~, psi_yz] = solve_unsteady(t, psi0_iso, tc.Dr, tc.beta, ...
+                Du_yz);
 
             T = speye(N);
             for l = 0:2:tc.Lmax
@@ -171,12 +171,12 @@ classdef TestSolveUnsteady < matlab.unittest.TestCase
             psi0_iso(idx(0,0,tc.Lmax)) = 1/sqrt(4*pi);
 
             Du_xz = [0,0,0;0,0,0;smz,0,0];
-            [~, psi_xz] = solve_unsteady(t, psi0_iso, tc.Lmax, tc.beta, ...
-                Du_xz, tc.Dr);
+            [~, psi_xz] = solve_unsteady(t, psi0_iso, tc.Dr, tc.beta, ...
+                Du_xz);
 
             Du_mz = [0,0,0;0,0,0;sxz,syz,0];
-            [~, psi_mz] = solve_unsteady(t, psi0_iso, tc.Lmax, tc.beta, ...
-                Du_mz, tc.Dr);
+            [~, psi_mz] = solve_unsteady(t, psi0_iso, tc.Dr, tc.beta, ...
+                Du_mz);
 
             T = speye(N);
             for l = 0:2:tc.Lmax
