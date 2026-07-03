@@ -17,19 +17,21 @@ function [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, varargin)
     store = parser.Results.store;
     alwaysread = parser.Results.alwaysread;
 
-    if isfile("data/matrices_"+Lmax+".mat")
+    if isfile("data/matrices_"+Lmax+"-two_shear.mat")
         if verbose
             disp('> FILE FOUND: Reading matrices from file');
         end
-        load("data/matrices_"+Lmax+".mat", 'L2', 'Gxz', 'iLy', 'Gyz', 'iLx');
+        load("data/matrices_"+Lmax+"-two_shear.mat", ...
+            'L2', 'Gxz', 'iLy', 'Gyz', 'iLx');
         return;
     end
 
-    if alwaysread && isfile("data/matrices_"+2048+".mat")
+    if alwaysread && isfile("data/matrices_"+2048+"-two_shear.mat")
         if verbose
             disp('> FILE FOUND: Reading matrices from file (2048)');
         end
-        load("data/matrices_"+2048+".mat", 'L2', 'Gxz', 'iLy', 'Gyz', 'iLx');
+        load("data/matrices_"+2048+"-two_shear.mat", ...
+            'L2', 'Gxz', 'iLy', 'Gyz', 'iLx');
         N = idx(Lmax, Lmax, Lmax);
         L2 = L2(1:N,1:N);
         Gxz = Gxz(1:N,1:N); iLy = iLy(1:N,1:N);
@@ -226,6 +228,7 @@ function [L2, Gxz, iLy, Gyz, iLx] = build_matrix(Lmax, varargin)
         if verbose
             disp('> Saving file for matrices');
         end
-        save("data/matrices_"+Lmax+".mat", 'L2', 'Gxz', 'iLy', 'Gyz', 'iLx');
+        save("data/matrices_"+Lmax+"-two_shear.mat", ...
+            'L2', 'Gxz', 'iLy', 'Gyz', 'iLx');
     end
 end
