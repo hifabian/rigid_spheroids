@@ -62,7 +62,7 @@ function psi_coeff = solve_steady(Lmax, beta, Du, varargin)
         psi_coeff = A(1:Nh+1,1:Nh+1) \ b(1:Nh+1);
         err = Inf;
         % Refine until small
-        while err > threshold*norm(psi_coeff(3:5))
+        while err > threshold*norm(psi_coeff(3:7))
             if Lhmax == Lmax
                 disp("> WARNING: Cannot achieve "+ ...
                      "threshold with given Lmax!");
@@ -78,7 +78,7 @@ function psi_coeff = solve_steady(Lmax, beta, Du, varargin)
             % Recompute high accuracy solution
             A = assemble_steady(Du, 1.0, beta, L2h, Gxzh, Lyh, Gyzh, Lxh);
             psi_coeff = A \ b(1:Nh+1);
-            err = norm(psi_ref(3:5)-psi_coeff((3:5)));
+            err = norm(psi_ref(3:7)-psi_coeff((3:7)));
         end
     end
 

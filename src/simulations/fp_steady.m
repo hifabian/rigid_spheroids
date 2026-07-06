@@ -113,7 +113,7 @@ function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
             if Ladaptive
                 err = inf;
                 % Refine until small
-                while err > threshold*norm(psi_coeff(3:5))
+                while err > threshold*norm(psi_coeff(3:7))
                     if Lhmax == Lmax
                         disp("> WARNING: Cannot achieve "+ ...
                              "threshold with given Lmax!");
@@ -133,11 +133,11 @@ function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
                         result.Du(:,:,i), result.Dr(j), bv(j), ...
                         L2h, Gxzh, Lyh, Gyzh, Lxh);
                     psi_coeff = A \ b(1:Nh+1);
-                    err = norm(psi_ref(3:5)-psi_coeff((3:5)));
+                    err = norm(psi_ref(3:7)-psi_coeff((3:7)));
                 end
                 % Check if too small, then decrease resolution for next
                 % step
-                if Lhmax > 32 && err < 1e-2*threshold*norm(psi_coeff(3:5))
+                if Lhmax > 32 && err < 1e-2*threshold*norm(psi_coeff(3:7))
                     Lhmax = 0.25*Lhmax;
                 end
             end
