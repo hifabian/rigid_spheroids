@@ -16,14 +16,17 @@ ax = gca;
 ax.ColorOrderIndex = 1;
 
 %% Load data to plot
-res_mono = load(dataPath+"shear_mono_unsteady_4.809e-07_1.00.mat").result;
+Pe = 10.0;
+
+ax.ColorOrderIndex = 1;
+res_mono = load(dataPath+"shear_mono_unsteady_4.809e-07_1.00_"+num2str(Pe, '%.2f')).result;
 res_poly = cell(1, 2);
 res_poly{1} = load(dataPath ...
-    +"shear_poly_Lognormal_unsteady_4.809e-07_1.00").result;
+    +"shear_poly_Lognormal_unsteady_4.809e-07_1.00_"+num2str(Pe, '%.2f')).result;
 res_poly{2} = load(dataPath ...
-    +"shear_poly_Normal_unsteady_4.809e-07_1.00").result;
+    +"shear_poly_Lognormal_unsteady_4.809e-07_1.00_"+num2str(Pe, '%.2f')+"-2").result;
 
-lmean = res_mono.lv;
+lmean = res_mono.q;
 rp = ((1+res_mono.bv)./(1-res_mono.bv)).^0.5;
 Dr_mean = 3*kB*Temp*log(rp)/(pi*eta*lmean^3);
 srPe = res_mono.Du0(3,1)/res_mono.Dr;
@@ -36,6 +39,7 @@ for i = 1:length(res_poly)
     helper(res_poly{i}.t*Dr_mean, S/S(1), ...
         'handle', h_order);
 end
+
 
 legend("Shear (Pe="+srPe+")", ...
     'Mono', 'Poly (Lognormal)', 'Poly (Normal)');

@@ -29,14 +29,14 @@ classdef TestFpSteady < matlab.unittest.TestCase
         function testDegeneratePolydisperseMatchesMonodisperse(tc)
             sxz = 10.0; syz = 2.0;
             Du = [0,0,0;0,0,0;sxz,syz,0];
-            lv_poly = [tc.l0-1e-10,tc.l0,tc.l0+1e-10]; % Close enough
-            fv_poly = [1,1,1];
-            fv_poly = fv_poly / trapz(lv_poly, fv_poly);
-            Dr_poly = ones(size(fv_poly))*tc.Dr;
+            q_poly = [tc.l0-1e-10,tc.l0,tc.l0+1e-10]; % Close enough
+            w_poly = [1;1;1];
+            w_poly = w_poly / sum(w_poly);
+            Dr_poly = ones(size(w_poly))*tc.Dr;
 
             result_mono = fp_steady(Du, tc.l0, 1, tc.Dr, tc.beta, ...
                 'Lmax', tc.Lmax, 'store', false);
-            result_poly = fp_steady(Du, lv_poly, fv_poly, Dr_poly, ...
+            result_poly = fp_steady(Du, q_poly, w_poly, Dr_poly, ...
                 tc.beta, 'Lmax', tc.Lmax, 'store', false);
 
             tc.verifyEqual(result_poly.Q, result_mono.Q, ...
@@ -107,7 +107,7 @@ classdef TestFpSteady < matlab.unittest.TestCase
                 'Lmax', tc.Lmax, 'store', false);
 
             lv_poly = tc.l0*[0.5, 1.0, 1.5];
-            fv_poly = [0.5, 1.0, 0.5];  % non-constant weighting
+            fv_poly = [0.5; 1.0; 0.5];  % non-constant weighting
             Dr_poly = ones(size(fv_poly))*tc.Dr;
             result_poly = fp_steady(Du, lv_poly, fv_poly, Dr_poly, ...
                 tc.beta, 'Lmax', tc.Lmax, 'store', false);

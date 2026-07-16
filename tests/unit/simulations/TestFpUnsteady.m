@@ -39,11 +39,11 @@ classdef TestFpUnsteady < matlab.unittest.TestCase
             init_mono = fp_init(Du0, tc.l0, 1, tc.Dr, tc.beta, ...
                 'Lmax', tc.Lmax, 'store', false);
 
-            lv_poly = [tc.l0-1e-12,tc.l0,tc.l0+1e-12]; % Close enough
-            fv_poly = [1,1,1];
-            fv_poly = fv_poly / trapz(lv_poly, fv_poly);
+            q_poly = [tc.l0-1e-12,tc.l0,tc.l0+1e-12]; % Close enough
+            w_poly = [1;1;1];
+            w_poly = w_poly / sum(w_poly);
             Dr_poly = ones(3)*tc.Dr;
-            init_poly = fp_init(Du0, lv_poly, fv_poly, Dr_poly, ...
+            init_poly = fp_init(Du0, q_poly, w_poly, Dr_poly, ...
                 tc.beta, 'Lmax', tc.Lmax, 'store', false);
 
             sxz = 1.5; syz = 0.5;
@@ -106,10 +106,11 @@ classdef TestFpUnsteady < matlab.unittest.TestCase
             init_mono = fp_init(Du0, tc.l0, 1, tc.Dr, tc.beta, ...
                 'Lmax', tc.Lmax, 'store', false);
 
-            lv_poly = tc.l0*[0.5, 1.5];
-            fv_poly = [1.0, 1.0];
+            q_poly = tc.l0*[0.5, 1.5];
+            w_poly = [1.0; 1.0];
+            w_poly = w_poly / sum(w_poly);
             Dr_poly = [0.5, 1.5];
-            init_poly = fp_init(Du0, lv_poly, fv_poly, Dr_poly, tc.beta, ...
+            init_poly = fp_init(Du0, q_poly, w_poly, Dr_poly, tc.beta, ...
                 'Lmax', tc.Lmax, 'store', false);
 
             sxz = 2.0; syz = 0.0;

@@ -11,15 +11,16 @@ function result = fp_unsteady(init, T, Du, varargin)
 %   store     (default=true):       Store matrix if not already
 %
 % Output:
-%   result.t:         Time grid
-%   result.Du:        Transient velocity gradient
-%   result.Du0:       Input velocity gradient
-%   result.Dr:        Input diffusion rates for all rods
-%   result.bv:        Input Bretherton parameters for all rods
-%   result.lv:        Input rod lengths
-%   result.fv:        Input polydisperisty probability density function
+%   result.t:        Time grid
+%   result.Du:       Transient velocity gradient
+%   result.Du0:      Input velocity gradient
+%   result.Dr:       Input diffusion rates for all rods
+%   result.bv:       Input Bretherton parameters for all rods
+%   result.q:        Input quadrature nodes / rod lengths
+%   result.w:        Input quadrature weights /
+%                    polydisperisty probability density function
 %
-%   result.Q:         Mean order parameter tensor for all times
+%   result.Q:        Mean order parameter tensor for all times
 
     parser = inputParser;
     addParameter(parser,        'dt', T/100);
@@ -41,8 +42,8 @@ function result = fp_unsteady(init, T, Du, varargin)
     result.Du0 = init.Du0;
     result.Dr = init.Dr;
     result.bv = init.bv;
-    result.lv = init.lv;
-    result.fv = init.fv;
+    result.q = init.q;
+    result.w = init.w;
 
     if isnumeric(Du) && ismatrix(Du)
         result.Du = Du;
@@ -62,7 +63,7 @@ function result = fp_unsteady(init, T, Du, varargin)
         'verbose', verbose, 'store', store);
 
     %Q = zeros(length(result.fv), length(result.t), 6);
-    for j = 1:length(result.fv)
+    for j = 1:length(result.w)
         N = length(init.psi0{j});
         [f, Fjac] = assemble_unsteady(Du, result.Dr(j), result.bv(j), ...
             L2(1:N,1:N), Gxz(1:N,1:N), iLy(1:N,1:N), ...
@@ -75,8 +76,8 @@ function result = fp_unsteady(init, T, Du, varargin)
 
     % Averaging using linearity of Q calculation 
     % (changing integral order) since Q = A_i*psi_{2,i}+B
-    if length(result.lv) > 1
-        result.Q = squeeze(trapz(result.lv, result.fv'.*Q));  % Polydisperse
+    if length(result.w) > 1
+        result.Q = squeeze(pagemtimes(result.w',Q));  % Polydisperse
     else
         result.Q = squeeze(Q);  % Monodisperse
     end

@@ -18,18 +18,14 @@ lsigma = lmean*0.5;  % Length distribution standard deviation
 rp   = lmean/dmean;              % (0: disk, 1: sphere, +infty: rod)
 beta = (rp.^2 - 1)./(rp.^2 + 1); % (-1: disk, 0: sphere, 1: rod)
 
-lmin = max(lmean - 5*lsigma,lmean/rp);
-lmax = lmean + 5*lsigma;
-Nl = 1e2+1;
-
-lv = linspace(lmin, lmax, Nl);
+lmin = max(lmean - 6*lsigma,lmean/rp);
+lmax = lmean + 8*lsigma;
 
 % Distributions
 normal = makedist('Normal', 'mu', lmean, 'sigma', lsigma);
 lognormal = makedist('Lognormal', ...
     'mu', log(lmean^2/sqrt(lsigma^2+lmean^2)), ...
     'sigma', sqrt(log(lsigma^2/lmean^2+1)));
-
 
 %% Simple shear information
 Pe = logspace(-3,4,50);
@@ -46,8 +42,9 @@ save(dataPath+"shear_mono_steady_"+lmean+"_"+num2str(beta, '%.2f') ...
 % Polydisperse
 distributions = {lognormal, normal};
 for i = 1:length(distributions)
-    fv = pdf(distributions{i}, lv);
-    fv = fv / trapz(lv, fv);  % Discretized distribution instead
+    [lv, fv] = build_quadrature('bounded', @(x) pdf(distributions{i}, x), ...
+        lmin, lmax, 30);
+
     rp = ((1+beta)./(1-beta)).^0.5;  % Aspect ratios
     Dr = 3*kB*Temp*log(rp)./(pi*eta*lv.^3);  % Diffusion rates
 

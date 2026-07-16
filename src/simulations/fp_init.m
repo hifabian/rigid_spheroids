@@ -1,8 +1,8 @@
-function result = fp_init(Du0, lv, fv, Dr, beta, varargin)
+function result = fp_init(Du0, q, w, Dr, beta, varargin)
 % Solve initial state of Fokker-Planck equation for rod suspensions.
 %
-% Polydisperse if (lv, fv) form a grid (using trapezoiudal method).
-% Monodisperse is solved if lv is a scalar.
+% Polydisperse if (q, w) form a grid (quadrature nodes and weights).
+% Monodisperse is solved if q is a scalar.
 %
 % The flow type is determined by Du0, which should be a 3x3 matrix (single
 % flow rate).
@@ -13,11 +13,17 @@ function result = fp_init(Du0, lv, fv, Dr, beta, varargin)
 % accurate around the specified `threshold`, which is used for `b_{2,m}'
 % only.
 %
+% NOTE: The quadrature nodes are not used explicitly, but should be
+%       accounted for in Dr.
+%
 % Input:
-%   Du0:    Initial velocity gradient u_{j,i} (in 1/s)
-%   lv:     Rod length scalar (monodisperse) or vector (polydisperse)
-%   fv:     Polydispersity probability density function f(lv)
-%   bv:     Bretherton parameter (scalar or vector for each rod)
+%   Du0:   Initial velocity gradient u_{j,i} (in 1/s)
+%   q:     Quadrature nodes, or
+%          rod length scalar (monodisperse) or vector (polydisperse)
+%   w:     Quadrature weights, or
+%          polydispersity probability density function f(q)
+%   Dr:    Rotational diffusion (scalar or vector for each rod)
+%   bv:    Bretherton parameter (scalar or vector for each rod)
 %
 %   Lmax      (default=2048):       Maximum L value (must be even)
 %   Ladaptive (default=false):      Adaptive flag
@@ -26,14 +32,15 @@ function result = fp_init(Du0, lv, fv, Dr, beta, varargin)
 %   store     (default=true):       Store matrix if not already
 %
 % Output:
-%   result.Du0:       Input velocity gradient
-%   result.Dr:        Input diffusion rates for all rods
-%   result.beta:      Input Bretherton parameters for all rods
-%   result.lv:        Input rod lengths
-%   result.fv:        Input polydisperisty probability density function
+%   result.Du0:      Input velocity gradient
+%   result.Dr:       Input diffusion rates for all rods
+%   result.bv:       Input Bretherton parameters for all rods
+%   result.q:        Input quadrature nodes / rod lengths
+%   result.w:        Input quadrature weights /
+%                    polydisperisty probability density function
+%   result.psi0:     Probabilty density function psi{l}(idx(l,m)) at t=0
 %
-%   result.psi0:      Probabilty density function psi{l}(idx(l,m)) at t=0
-%   result.Lmax:      Maximum Lmax used among all psi0.
+%   result.Lmax:     Maximum Lmax used among all psi0.
 
     parser = inputParser;
     addParameter(parser,      'Lmax', 2048);
@@ -52,21 +59,25 @@ function result = fp_init(Du0, lv, fv, Dr, beta, varargin)
 
     LmaxInfo = 0;
     if verbose
-        disp("> Solving "+length(lv)+" problem(s)");
+        disp("> Solving "+length(q)+" problem(s)");
         disp("> Lmax = "+Lmax+" (adaptive ? "+Ladaptive+")");
     end
 
     if isscalar(beta)
-        bv = beta*ones(1,length(lv));
+        result.bv = beta*ones(1,length(w));
     else
-        bv = beta;
+        result.bv = beta;
     end
     
-    result.Dr = Dr;
+    if isscalar(Dr)
+        result.Dr = Dr*ones(1,length(w));
+    else
+        result.Dr = Dr;
+    end
+
     result.Du0 = Du0;
-    result.bv = bv;
-    result.lv = lv;
-    result.fv = fv;
+    result.q = q;
+    result.w = w;
 
     if ~Ladaptive
         % non addaptive, or adaptive
@@ -92,11 +103,11 @@ function result = fp_init(Du0, lv, fv, Dr, beta, varargin)
         Gyzh = Gyz(1:Nh,1:Nh); Lxh = iLx(1:Nh,1:Nh);
     end
 
-    result.psi0 = cell(1,length(fv));
-    for j = 1:length(fv)
+    result.psi0 = cell(1,length(w));
+    for j = 1:length(w)
 
         % High accuracy solution
-        A = assemble_steady(result.Du0, result.Dr(j), bv(j), ...
+        A = assemble_steady(result.Du0, result.Dr(j), result.bv(j), ...
             L2h, Gxzh, Lyh, Gyzh, Lxh);
         psi_coeff = A \ b(1:Nh+1); % [0,psi]
 
@@ -118,8 +129,8 @@ function result = fp_init(Du0, lv, fv, Dr, beta, varargin)
                 % Set high -> low
                 psi_ref = psi_coeff;
                 % Recompute high accuracy solution
-                A = assemble_steady(result.Du0, result.Dr(j), bv(j), ...
-                        L2h, Gxzh, Lyh, Gyzh, Lxh);
+                A = assemble_steady(result.Du0, result.Dr(j), ...
+                    result.bv(j), L2h, Gxzh, Lyh, Gyzh, Lxh);
                 psi_coeff = A \ b(1:Nh+1);
                 err = norm(psi_ref(3:7)-psi_coeff((3:7)));
             end

@@ -1,8 +1,8 @@
-function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
+function result = fp_steady(Du, q, w, Dr, beta, varargin)
 % Solve steady Fokker-Planck equation for rod suspensions.
 %
-% Polydisperse if (lv, fv) form a grid (using trapezoidal method).
-% Monodisperse is solved if lv is a scalar.
+% Polydisperse if (q, w) form a grid (quadrature nodes and weights).
+% Monodisperse is solved if q is a scalar.
 %
 % The flow type is determined by Du, which may be a 3x3 matrix (single
 % flow rate) or a list of 3x3 matrices (multiple flow rates).
@@ -13,10 +13,16 @@ function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
 % accurate around the specified `threshold`, which is used for `b_{2,m}'
 % only.
 %
+% NOTE: The quadrature nodes are not used explicitly, but should be
+%       accounted for in Dr.
+%
 % Input:
 %   Du:    (List of) velocity gradient(s) u_{j,i} (in 1/s)
-%   lv:    Rod length scalar (monodisperse) or vector (polydisperse)
-%   fv:    Polydispersity probability density function f(lv)
+%   q:     Quadrature nodes, or
+%          rod length scalar (monodisperse) or vector (polydisperse)
+%   w:     Quadrature weights, or
+%          polydispersity probability density function f(q)
+%   Dr:    Rotational diffusion (scalar or vector for each rod)
 %   bv:    Bretherton parameter (scalar or vector for each rod)
 %
 %   Lmax      (default=2048):       Maximum L value (must be even)
@@ -29,8 +35,9 @@ function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
 %   result.Du:       Input velocity gradients for all flows
 %   result.Dr:       Input diffusion rates for all rods
 %   result.bv:       Input Bretherton parameters for all rods
-%   result.lv:       Input rod lengths
-%   result.fv:       Input polydisperisty probability density function
+%   result.q:        Input quadrature nodes / rod lengths
+%   result.w:        Input quadrature weights /
+%                    polydisperisty probability density function
 %
 %   result.Q:        Mean order parameter tensor for all flows
 
@@ -59,19 +66,24 @@ function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
 
     LmaxInfo = 0;
     if verbose
-        disp("> Solving "+ftlength+"x"+length(lv)+" problem(s)");
+        disp("> Solving "+ftlength+"x"+length(w)+" problem(s)");
         disp("> Lmax = "+Lmax+" (adaptive ? "+Ladaptive+")");
     end
 
     if isscalar(beta)
-        bv = beta*ones(1,length(lv));
+        result.bv = beta*ones(1,length(w));
     else
-        bv = beta;
+        result.bv = beta;
     end
-    result.Dr = Dr;  % Diffusion rates
-    result.bv = bv;  % Bretherton parameter
-    result.lv = lv;
-    result.fv = fv;
+
+    if isscalar(Dr)
+        result.Dr = Dr*ones(1,length(w));
+    else
+        result.Dr = Dr;
+    end
+
+    result.q = q;
+    result.w = w;
 
     result.Q = zeros(ftlength,6);
 
@@ -100,14 +112,12 @@ function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
     end
 
     for i = 1:ftlength
-
-        Q = zeros(length(fv), 6);
-
-        for j = 1:length(fv)
+        Q = zeros(length(w), 6);
+        for j = 1:length(w)
 
             % High accuracy solution
-            A = assemble_steady(result.Du(:,:,i), result.Dr(j), bv(j), ...
-                L2h, Gxzh, Lyh, Gyzh, Lxh);
+            A = assemble_steady(result.Du(:,:,i), result.Dr(j), ...
+                result.bv(j), L2h, Gxzh, Lyh, Gyzh, Lxh);
             psi_coeff = A \ b(1:Nh+1);
 
             if Ladaptive
@@ -130,7 +140,7 @@ function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
                     psi_ref = psi_coeff;
                     % Recompute high accuracy solution
                     A = assemble_steady( ...
-                        result.Du(:,:,i), result.Dr(j), bv(j), ...
+                        result.Du(:,:,i), result.Dr(j), result.bv(j), ...
                         L2h, Gxzh, Lyh, Gyzh, Lxh);
                     psi_coeff = A \ b(1:Nh+1);
                     err = norm(psi_ref(3:7)-psi_coeff((3:7)));
@@ -148,8 +158,8 @@ function result = fp_steady(Du, lv, fv, Dr, beta, varargin)
 
         % Averaging using linearity of Q calculation 
         % (changing integral order) since Q = A_i*psi_{2,i}+B
-        if length(lv) > 1
-            result.Q(i,:) = trapz(lv, fv'.*Q);  % Polydisperse
+        if length(w) > 1
+            result.Q(i,:) = pagemtimes(w',Q);  % Polydisperse
         else
             result.Q(i,:) = Q;  % Monodisperse
         end
